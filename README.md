@@ -45,55 +45,8 @@ Key Features
 - Can extend to reinforcement learning agents or scenario planners for advanced gameplay.
 
 Architecture Overview
-+--------------------+
-| Fed-Batch Game     |
-| Engine (Python)    |
-+---------+----------+
-          |
-          v
-+--------------------+
-| Delta Tables / S3  |
-| (Synthetic runs)   |
-+---------+----------+
-          |
-          v
-+--------------------+
-| ML / Anomaly       |
-| Detection          |
-| (sklearn / PyTorch)|
-+---------+----------+
-          |
-          v
-+--------------------+        +--------------------+
-| Multi-Agent Copilot|<------>| LLM Summarization  |
-| - Monitoring       |        | (LangChain / CrewAI)|
-| - Troubleshooting  |        +--------------------+
-| - Reporting        |
-+---------+----------+
-          |
-          v
-+--------------------+
-| Frontend Dashboard |
-| (React + TypeScript|
-| + D3)              |
-+--------------------+
 
-
-Folder Structure
-/BioPilot
-├─ backend/          # FastAPI API, game engine, ML models 
-
-├─ frontend/         # React + TypeScript + D3 dashboard
-
-├─ notebooks/        # Databricks notebooks for simulation, anomalies, agents
-
-├─ data/             # Sample Delta tables / synthetic runs
-
-├─ agents/           # Agent orchestration modules
-
-├─ requirements.txt
-
-└─ README.md
+Fed-Batch Game Engine --> Delta Tables/S3 (Synthetic Runs) --> ML Anomaly Detection (PyTorch/sklearn) --> Multi-Agent Copilot (troubleshooting, monitoring, reporting) --> LLM Summarization --> Frontend
 
 Future Extensions
 - Multi-reactor simulation (batch, perfusion, scale-up).
