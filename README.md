@@ -38,13 +38,11 @@ Agentic Reasoning:
 - LLM-driven summarization produces human-readable explanations.
 - Modular agent architecture allows future expansion (Experiment Designer, QA reviewer, knowledge graph).
 
-
-
 Load synthetic runs into Delta Tables (Databricks notebook included).
 Demo Scenarios
-Normal Run – Shows standard fed-batch behavior; agents summarize final titer and HCP.
-Pump Omission / Overfeed Fault – Agent detects anomaly, proposes feed adjustment, summary updated.
-Contamination Spike – Agent identifies root cause, demonstrates anomaly interpretation and downstream assay effect.
+- Normal Run – Shows standard fed-batch behavior; agents summarize final titer and HCP.
+- Pump Omission / Overfeed Fault – Agent detects anomaly, proposes feed adjustment, summary updated.
+- Contamination Spike – Agent identifies root cause, demonstrates anomaly interpretation and downstream assay effect.
 Each scenario is reproducible and comes with preloaded Delta table runs.
 
 Folder Structure
@@ -58,11 +56,8 @@ Folder Structure
 └─ README.md
 
 Future Extensions
-Multi-reactor simulation for parallel runs.
-Experiment Designer agent (DoE proposal).
-
-Knowledge graph linking parameters → anomalies → product quality.
-
-LLM-enhanced scenario planning and counterfactual reasoning.
-
-Exportable regulatory-style run reports.
+- Multi-reactor simulation for parallel runs.
+- Experiment Designer agent (DoE proposal).
+- Knowledge graph linking parameters → anomalies → product quality.
+- LLM-enhanced scenario planning and counterfactual reasoning.
+- Exportable regulatory-style run reports.
