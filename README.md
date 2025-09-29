@@ -57,7 +57,6 @@ Future Extensions
 
 High Level Architecture:
 
-'''
                               +------------------------+
                               |  User / Scientist UI   |
                               |------------------------|
@@ -68,7 +67,7 @@ High Level Architecture:
                               | - Request agent hints  |
                               +-----------+------------+
                                           |
-                                          v
+                                          |
 +---------------------------+      +---------------------------+
 | Fed-Batch Game Engine     |      | Delta Tables / Data Lake  |
 | (Synthetic Bioreactor)    |----->|---------------------------|
@@ -80,7 +79,7 @@ High Level Architecture:
 | - Multi-run batch support |
 +-----------+---------------+
             |
-            v
+            |
 +---------------------------+
 | Anomaly Detection Layer   |
 |---------------------------|
@@ -92,7 +91,7 @@ High Level Architecture:
 |   & severity scores       |
 +-----------+---------------+
             |
-            v
+            |
 +---------------------------+
 | Multi-Agent Copilot       |
 |---------------------------|
@@ -110,7 +109,7 @@ High Level Architecture:
 | - Optional: Fault Generator|
 +-----------+---------------+
             |
-            v
+            |
 +---------------------------+
 | Knowledge Retrieval Layer |
 |---------------------------|
@@ -123,7 +122,7 @@ High Level Architecture:
 |   to relevant literature  |
 +-----------+---------------+
             |
-            v
+            |
 +---------------------------+
 | Frontend Dashboard         |
 |---------------------------|
@@ -133,4 +132,3 @@ High Level Architecture:
 | - Agent chat interface     |
 | - "Learn more" links       |
 +---------------------------+
-'''
