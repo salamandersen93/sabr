@@ -56,4 +56,28 @@ Future Extensions
 - Exportable regulatory-style run reports.
 
 High Level Architecture:
+
 <img width="330" height="602" alt="image" src="https://github.com/user-attachments/assets/8783171d-d276-44e1-9ffd-6142362f436c" />
+
+Components:
+
+| Component / Layer                     | Implementation / Module                 | Purpose / Notes                                                                                                   | Status / Notes for MVP                                                   |
+| ------------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **Fed-Batch Game Engine**             | `notebooks/synthetic_bioreactor.ipynb`  | Simulates fed-batch runs with biomass, substrate, product, DO, pH, HCP, titer. Adds noise, drift, and anomalies.  | Core MVP module. Generates synthetic data for all downstream components. |
+|                                       | `backend/game_engine.py`                | Wraps simulation functions into reusable API endpoints; allows multiple runs and parameter sweeps.                | Optional for early MVP; enables integration with frontend/agents.        |
+| **Delta Table / Data Lake**           | `notebooks/data_pipeline.ipynb`         | Saves telemetry and assay data in Delta tables on Databricks; supports batch & multi-run storage.                 | Essential for scalable analytics and agent queries.                      |
+|                                       | `backend/data_api.py`                   | API endpoints to retrieve run data for UI or agent processing.                                                    | Optional for initial notebook-only MVP.                                  |
+| **Anomaly Detection Layer**           | `notebooks/anomaly_detection.ipynb`     | Implements baseline analytics (z-score, moving average) and ML models (PyTorch / Isolation Forest).               | Phase 2; used to provide ground truth for agent reasoning.               |
+|                                       | `backend/anomaly_models.py`             | Modular anomaly detection functions callable by API or agents.                                                    | Makes models reusable by copilot or dashboard.                           |
+| **Multi-Agent Copilot**               | `agents/monitoring_agent.py`            | Observes telemetry and flags anomalies in real time or batch.                                                     | MVP version can use simple rules; later add ML/LLM reasoning.            |
+|                                       | `agents/troubleshooting_agent.py`       | Interprets anomalies, recommends corrective actions, and optionally queries knowledge layer.                      | Key demonstration of AI reasoning and agent orchestration.               |
+|                                       | `agents/reporting_agent.py`             | Summarizes run results and generates human-readable reports; can optionally produce PDF/Markdown.                 | Enhances portfolio presentation.                                         |
+|                                       | `agents/fault_generator_agent.py`       | Optional: generates subtle composite faults for more challenging simulation scenarios.                            | Adds depth for Phase 3; not required for MVP.                            |
+| **Knowledge Retrieval Layer**         | `agents/knowledge_agent.py`             | Queries curated OA bioprocess literature or vector DB; summarizes findings for user/agent hints.                  | Enables “Learn More” functionality; can start with small curated corpus. |
+|                                       | `notebooks/knowledge_index.ipynb`       | Prepares vector embeddings (FAISS/Milvus/Weaviate) from abstracts/papers.                                         | Essential for reproducible, offline agent knowledge access.              |
+| **Frontend Dashboard**                | `frontend/`                             | React + TypeScript + D3 dashboard; displays telemetry, assays, anomalies, agent messages, and “Learn More” links. | MVP can start with static plots; full interactivity comes later.         |
+|                                       | `frontend/components/AgentChat.tsx`     | Chat interface for interacting with agents; requests hints, explanations, and report summaries.                   | Central for gamified learning experience.                                |
+|                                       | `frontend/components/TelemetryPlot.tsx` | Dynamic plotting of time-series signals (X, S, P, DO, pH, HCP, titer).                                            | Core MVP visualization.                                                  |
+| **Simulation Control / Gamification** | `backend/game_controller.py`            | Handles user-defined assay panels, applies faults, triggers agent hints, and manages simulation steps.            | Enables interactive gameplay mechanics.                                  |
+| **Portfolio / Demo Runs**             | `notebooks/demo_runs.ipynb`             | Pre-generated runs demonstrating normal behavior, single faults, and composite faults for portfolio showcase.     | Useful for README, demo videos, or interactive showcase.                 |
+
