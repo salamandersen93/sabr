@@ -38,89 +38,13 @@ Agentic Reasoning:
 - LLM-driven summarization produces human-readable explanations.
 - Modular agent architecture allows future expansion (Experiment Designer, QA reviewer, knowledge graph).
 
-Architecture Overview
-+--------------------+
-| Synthetic Twin     |
-| (Python/ODE model)|
-+---------+----------+
-          |
-          v
-+--------------------+
-| Delta Tables / S3  |
-| (Time series +     |
-| anomalies)         |
-+---------+----------+
-          |
-          v
-+--------------------+
-| ML / Anomaly       |
-| Detection (sklearn/|
-| PyTorch)           |
-+---------+----------+
-          |
-          v
-+--------------------+        +--------------------+
-| Multi-Agent Copilot|<------>| LLM Summarization  |
-| - Monitoring       |        | (LangChain / CrewAI)|
-| - Troubleshooting  |        +--------------------+
-| - Reporting        |
-+---------+----------+
-          |
-          v
-+--------------------+
-| Frontend Dashboard |
-| (React + TypeScript|
-| + D3)              |
-+--------------------+
-
-Getting Started
-Prerequisites
-
-Databricks Community Edition account (Delta Tables)
-
-Python 3.10+
-
-Node.js + npm/yarn
-
-Optional: OpenAI API key for LLM summarization
-
-Installation (Local / Databricks)
-
-Clone the repository:
-
-git clone https://github.com/<username>/BioPilot.git
-cd BioPilot
-
-
-Python environment:
-
-# For local dev
-pip install -r requirements.txt
-
-
-Frontend setup:
-
-cd frontend
-npm install
-npm start
-
-
-Start backend API (FastAPI):
-
-cd backend
-uvicorn main:app --reload
 
 
 Load synthetic runs into Delta Tables (Databricks notebook included).
-
 Demo Scenarios
-
 Normal Run – Shows standard fed-batch behavior; agents summarize final titer and HCP.
-
 Pump Omission / Overfeed Fault – Agent detects anomaly, proposes feed adjustment, summary updated.
-
 Contamination Spike – Agent identifies root cause, demonstrates anomaly interpretation and downstream assay effect.
-
 Each scenario is reproducible and comes with preloaded Delta table runs.
 
 Folder Structure
@@ -134,9 +58,7 @@ Folder Structure
 └─ README.md
 
 Future Extensions
-
 Multi-reactor simulation for parallel runs.
-
 Experiment Designer agent (DoE proposal).
 
 Knowledge graph linking parameters → anomalies → product quality.
