@@ -1,63 +1,103 @@
 # synthetic_twin
-Synthetic Twin is an end-to-end AI-driven bioprocess analytics platform designed to demonstrate synthetic bioreactor simulation, anomaly detection, and agentic reasoning. The platform combines three core capabilities:
+Project Overview
 
-Synthetic Bioreactor Twin 
-- Generates plausible CHO fed-batch bioreactor runs (cell growth, substrate, product titer, host-cell protein, DO, pH).
-- Includes realistic stochastic noise, drift, and offline assay sampling.
-- Supports configurable feed schedules, setpoints, and reactor parameters.
+Synthetic Twin - Biopilot is an interactive, AI-driven bioprocess simulation and analytics platform designed to demonstrate synthetic bioreactor modeling, anomaly detection, and agent-assisted troubleshooting within a gamified learning environment. BioPilot uses a “game engine” approach to create plausible, dynamic bioreactor runs.
+
+Fed-Batch Game Engine (Synthetic Bioreactor Twin)
+- Simulates CHO fed-batch runs with core signals: Biomass (X), Substrate (S), Product/Titer (P), DO, pH, and Host-Cell Protein (HCP).
+- Incorporates stochastic noise, drift, and assay lag for realism.
+- Users can define assay panels, run experiments, and observe both telemetry and assay readouts.
 
 Bioprocess Anomaly Detection Playground
-- Detects deviations from expected process behavior (overfeeding, pH/DO excursions, sensor drift, contamination).
-- Supports both classical methods (z-score, moving average, Isolation Forest) and ML-based detection (PyTorch/TensorFlow).
-- Provides labeled synthetic anomalies for benchmarking and visualization.
+- Detects deviations in process behavior using classical analytics (z-score, moving average, Isolation Forest) and ML (PyTorch).
+- Fault archetypes include: overfeeding, underfeeding, DO limitation, pH spikes, temperature shifts, sensor failures, and composite events.
+- Labels can be algorithmically injected for benchmarking, or agent-generated for advanced scenarios.
 
 Multi-Agent Bioprocess Copilot
-- Monitoring Agent: Observes telemetry and raises alerts.
-- Troubleshooting Agent: Interprets anomalies and proposes likely root causes.
-- Reporting Agent: Generates natural language summaries and run reports.
-- Optional agent-driven anomaly generation for complex, realistic scenarios.
-
-The system is designed for personal exploration of AI in bioprocess analytics, leveraging synthetic data to avoid proprietary constraints.
+- Monitoring Agent: observes process telemetry and flags anomalies.
+- Troubleshooting Agent: interprets anomalies, identifies likely root causes, and suggests next steps.
+- Reporting Agent: produces human-readable summaries and run reports.
+- Optional agent-driven fault generation creates complex, realistic runs to challenge the user or other agents.
 
 Key Features
+1. Interactive Gameplay
+- Select assay panels dynamically for each simulated run.
+- Observe bioreactor telemetry and assay outputs in real time.
+- Work with agents to diagnose faults, optimize feed, or suggest corrective actions.
 
-Interactive Dashboard:
-- Real-time plots of bioreactor telemetry (cell density, substrate, DO, pH, product titer, HCP).
-- Control panel for adjusting feed schedule, DO, pH setpoints, and injecting faults.
-- Agent chat panel displaying recommendations, diagnostics, and explanations.
-Synthetic Data Generation:
-- Parameterized ODE-based simulation with configurable biological kinetics.
-- Supports batch and streaming generation, stored in Delta Tables for scalable processing.
-- Offline assays simulated daily (titer, HCP).
-Fault Injection & Anomaly Labeling:
-- Predefined fault archetypes: overfeeding, underfeeding, DO limitation, pH excursion, temperature spikes, sensor failures, contamination.
-- Composite/agent-suggested anomalies for realism.
-- Ground truth labels stored for evaluation and benchmarking.
-Agentic Reasoning:
-- Agents use telemetry + anomaly signals to propose interventions.
-- LLM-driven summarization produces human-readable explanations.
-- Modular agent architecture allows future expansion (Experiment Designer, QA reviewer, knowledge graph).
+2. Gamification Mechanics
+- Fault Diagnosis Challenges: Hidden faults must be detected using limited telemetry or assays.
+- Resource Management: Limited assay budget encourages strategic measurement decisions.
+- Scenario Levels: Beginner → obvious faults; Intermediate → overlapping or subtle faults; Expert → complex composite anomalies.
+- Experiment Designer Mode: Users or agents can manipulate feed, DO, or pH setpoints to optimize runs.
+- Feedback Loop: Agents provide hints and probabilistic reasoning without giving away solutions.
+- Achievements & Leaderboards: Track accuracy, efficiency, and optimal runs.
 
-Load synthetic runs into Delta Tables (Databricks notebook included).
-Demo Scenarios
-- Normal Run – Shows standard fed-batch behavior; agents summarize final titer and HCP.
-- Pump Omission / Overfeed Fault – Agent detects anomaly, proposes feed adjustment, summary updated.
-- Contamination Spike – Agent identifies root cause, demonstrates anomaly interpretation and downstream assay effect.
-Each scenario is reproducible and comes with preloaded Delta table runs.
+3. Synthetic Data Generation
+- Fast, reproducible ODE-based “game engine” simulation.
+- Randomized noise and drift mimic sensor imperfections.
+- Configurable faults/anomalies with labeled ground truth.
+- Data stored in Delta Tables for scalable analytics.
+
+4. Agent Interaction
+- Agents interact dynamically with user-selected assays and telemetry.
+- Multi-agent orchestration enables reasoning across monitoring, troubleshooting, and reporting.
+- Can extend to reinforcement learning agents or scenario planners for advanced gameplay.
+
+Architecture Overview
++--------------------+
+| Fed-Batch Game     |
+| Engine (Python)    |
++---------+----------+
+          |
+          v
++--------------------+
+| Delta Tables / S3  |
+| (Synthetic runs)   |
++---------+----------+
+          |
+          v
++--------------------+
+| ML / Anomaly       |
+| Detection          |
+| (sklearn / PyTorch)|
++---------+----------+
+          |
+          v
++--------------------+        +--------------------+
+| Multi-Agent Copilot|<------>| LLM Summarization  |
+| - Monitoring       |        | (LangChain / CrewAI)|
+| - Troubleshooting  |        +--------------------+
+| - Reporting        |
++---------+----------+
+          |
+          v
++--------------------+
+| Frontend Dashboard |
+| (React + TypeScript|
+| + D3)              |
++--------------------+
+
 
 Folder Structure
 /BioPilot
-├─ backend/          # FastAPI API, data generators, ML models
+├─ backend/          # FastAPI API, game engine, ML models 
+
 ├─ frontend/         # React + TypeScript + D3 dashboard
-├─ notebooks/        # Databricks notebooks: simulation, anomaly detection, agents
+
+├─ notebooks/        # Databricks notebooks for simulation, anomalies, agents
+
 ├─ data/             # Sample Delta tables / synthetic runs
-├─ agents/           # Agent modules and orchestration scripts
+
+├─ agents/           # Agent orchestration modules
+
 ├─ requirements.txt
+
 └─ README.md
 
 Future Extensions
-- Multi-reactor simulation for parallel runs.
-- Experiment Designer agent (DoE proposal).
+- Multi-reactor simulation (batch, perfusion, scale-up).
+- Reinforcement learning agents for optimized feed strategies.
+- Integration of enzyme kinetics, thermodynamics, or metabolic byproducts.
 - Knowledge graph linking parameters → anomalies → product quality.
-- LLM-enhanced scenario planning and counterfactual reasoning.
 - Exportable regulatory-style run reports.
