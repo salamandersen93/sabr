@@ -66,7 +66,6 @@ High Level Architecture:
                               |   assay readouts       |
                               | - Request agent hints  |
                               +-----------+------------+
-                                          |
                                           v
 +---------------------------+      +---------------------------+
 | Fed-Batch Game Engine     |      | Delta Tables / Data Lake  |
@@ -78,7 +77,6 @@ High Level Architecture:
 | - Fault Injection         |      +---------------------------+
 | - Multi-run batch support |
 +-----------+---------------+
-            |
             v
 +---------------------------+
 | Anomaly Detection Layer   |
@@ -90,7 +88,6 @@ High Level Architecture:
 | - Outputs: anomaly flags  |
 |   & severity scores       |
 +-----------+---------------+
-            |
             v
 +---------------------------+
 | Multi-Agent Copilot       |
@@ -108,7 +105,6 @@ High Level Architecture:
 |     reports               |
 | - Optional: Fault Generator|
 +-----------+---------------+
-            |
             v
 +---------------------------+
 | Knowledge Retrieval Layer |
@@ -121,7 +117,6 @@ High Level Architecture:
 | - Returns summaries, links|
 |   to relevant literature  |
 +-----------+---------------+
-            |
             v
 +---------------------------+
 | Frontend Dashboard         |
