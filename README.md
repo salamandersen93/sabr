@@ -54,3 +54,81 @@ Future Extensions
 - Integration of enzyme kinetics, thermodynamics, or metabolic byproducts.
 - Knowledge graph linking parameters → anomalies → product quality.
 - Exportable regulatory-style run reports.
+
+High Level Architecture:
+
+                              +------------------------+
+                              |  User / Scientist UI   |
+                              |------------------------|
+                              | - Select assay panels  |
+                              | - Adjust feed/pH/DO    |
+                              | - View telemetry &     |
+                              |   assay readouts       |
+                              | - Request agent hints  |
+                              +-----------+------------+
+                                          |
+                                          v
++---------------------------+      +---------------------------+
+| Fed-Batch Game Engine     |      | Delta Tables / Data Lake  |
+| (Synthetic Bioreactor)    |----->|---------------------------|
+|---------------------------|      | - Time series telemetry   |
+| - Biomass, Substrate, P   |      | - Offline assays          |
+| - DO, pH, HCP, Titer      |      | - Labeled anomalies       |
+| - Noise, Drift, Lagged    |      | - Configurable metadata   |
+| - Fault Injection         |      +---------------------------+
+| - Multi-run batch support |
++-----------+---------------+
+            |
+            v
++---------------------------+
+| Anomaly Detection Layer   |
+|---------------------------|
+| - Classical methods       |
+|   (z-score, moving avg)   |
+| - ML methods              |
+|   (PyTorch, IsolationForest)|
+| - Outputs: anomaly flags  |
+|   & severity scores       |
++-----------+---------------+
+            |
+            v
++---------------------------+
+| Multi-Agent Copilot       |
+|---------------------------|
+| - Monitoring Agent        |
+|   • Observes telemetry    |
+|   • Flags anomalies       |
+| - Troubleshooting Agent   |
+|   • Suggests likely causes|
+|   • Recommends corrective |
+|     actions               |
+| - Reporting Agent         |
+|   • Summarizes runs       |
+|   • Generates human-readable|
+|     reports               |
+| - Optional: Fault Generator|
++-----------+---------------+
+            |
+            v
++---------------------------+
+| Knowledge Retrieval Layer |
+|---------------------------|
+| - Curated OA bioprocess   |
+|   papers / abstracts      |
+| - Vector DB (FAISS /      |
+|   Milvus / Weaviate)      |
+| - Agents query embeddings |
+| - Returns summaries, links|
+|   to relevant literature  |
++-----------+---------------+
+            |
+            v
++---------------------------+
+| Frontend Dashboard         |
+|---------------------------|
+| - Real-time telemetry plots|
+| - Assay panel results      |
+| - Fault highlights         |
+| - Agent chat interface     |
+| - "Learn more" links       |
++---------------------------+
