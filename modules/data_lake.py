@@ -1,4 +1,3 @@
-# data_lake.py
 """
 BioreactorDataLake
 - Provides clean interfaces to persist telemetry, anomalies, faults, agent actions, and metadata
@@ -37,16 +36,11 @@ class BioreactorDataLake:
             "fault_log": "fault_log"
         }
 
-    # ----------------------------------------------------------------
-    # Schema/table creation
-    # ----------------------------------------------------------------
     def create_schema_and_tables(self, spark):
         """Create schema and Delta tables if they do not exist."""
 
-        # Ensure schema exists
         spark.sql(f"CREATE SCHEMA IF NOT EXISTS {self.schema}")
 
-        # Telemetry
         spark.sql(f"""
         CREATE TABLE IF NOT EXISTS {self.tables['telemetry']} (
             run_id STRING,
@@ -56,10 +50,8 @@ class BioreactorDataLake:
             is_observed BOOLEAN,
             timestamp TIMESTAMP,
             batch_id INT
-        ) USING DELTA
-        """)
+        ) USING DELTA""")
 
-        # Anomaly Scores
         spark.sql(f"""
         CREATE TABLE IF NOT EXISTS {self.tables['anomaly_scores']} (
             run_id STRING,
@@ -70,10 +62,8 @@ class BioreactorDataLake:
             is_anomaly BOOLEAN,
             context STRING,
             timestamp TIMESTAMP
-        ) USING DELTA
-        """)
+        ) USING DELTA""")
 
-        # Fault Log
         spark.sql(f"""
         CREATE TABLE IF NOT EXISTS {self.tables['fault_log']} (
             run_id STRING,
@@ -83,10 +73,8 @@ class BioreactorDataLake:
             duration DOUBLE,
             parameters STRING,
             timestamp TIMESTAMP
-        ) USING DELTA
-        """)
+        ) USING DELTA""")
 
-        # Agent Actions
         spark.sql(f"""
         CREATE TABLE IF NOT EXISTS {self.tables['agent_actions']} (
             run_id STRING,
@@ -96,10 +84,8 @@ class BioreactorDataLake:
             parameters STRING,
             rationale STRING,
             timestamp TIMESTAMP
-        ) USING DELTA
-        """)
+        ) USING DELTA""")
 
-        # Run Metadata
         spark.sql(f"""
         CREATE TABLE IF NOT EXISTS {self.tables['run_metadata']} (
             run_id STRING,
@@ -112,12 +98,9 @@ class BioreactorDataLake:
             score DOUBLE,
             start_time TIMESTAMP,
             end_time TIMESTAMP
-        ) USING DELTA
-        """)
+        ) USING DELTA""")
 
-    # ----------------------------------------------------------------
-    # Save methods
-    # ----------------------------------------------------------------
+    # methods for saving data
     def save_telemetry(
         self, spark, run_id: str, telemetry_data: List[Dict],
         is_observed: bool = True, batch_id: int = 0):
@@ -138,8 +121,7 @@ class BioreactorDataLake:
                         'value': float(value),
                         'is_observed': bool(is_observed),
                         'timestamp': timestamp,
-                        'batch_id': int(batch_id)
-                    })
+                        'batch_id': int(batch_id)})
         if records:
             df = spark.createDataFrame(records)
             save_data(df, self.tables["telemetry"])
@@ -170,13 +152,11 @@ class BioreactorDataLake:
             'start_time': float(start_time),
             'duration': float(duration),
             'parameters': json.dumps(parameters),
-            'timestamp': datetime.now()
-        }])
+            'timestamp': datetime.now()}])
         save_data(df, self.tables["fault_log"])
 
     def save_agent_action(self, spark, run_id: str, action_id: str,
-                          time: float, action_type: str, parameters: Dict[str, Any],
-                          rationale: str):
+                          time: float, action_type: str, parameters: Dict[str, Any],rationale: str):
         df = spark.createDataFrame([{
             'run_id': run_id,
             'action_id': action_id,
@@ -184,8 +164,7 @@ class BioreactorDataLake:
             'action_type': action_type,
             'parameters': json.dumps(parameters),
             'rationale': rationale,
-            'timestamp': datetime.now()
-        }])
+            'timestamp': datetime.now()}])
         save_data(df, self.tables["agent_actions"])
 
     def save_run_metadata(self, spark, run_id: str, config: Dict[str, Any],
@@ -202,20 +181,16 @@ class BioreactorDataLake:
             'success': bool(success),
             'score': float(score),
             'start_time': start_time,
-            'end_time': end_time
-        }])
+            'end_time': end_time}])
         save_data(df, self.tables["run_metadata"])
 
-    # ----------------------------------------------------------------
-    # Query methods
-    # ----------------------------------------------------------------
+    # methods to query data
     def _read(self, spark, name: str):
         return spark.read.table(self.tables[name])
 
     def get_run_telemetry(self, spark, run_id: str, is_observed: bool = True) -> pd.DataFrame:
         df = self._read(spark, "telemetry").filter(
-            (F.col("run_id") == run_id) & (F.col("is_observed") == is_observed)
-        )
+            (F.col("run_id") == run_id) & (F.col("is_observed") == is_observed))
         return df.toPandas()
 
     def get_anomalies(self, spark, run_id: str, only_detected: bool = False) -> pd.DataFrame:
@@ -242,8 +217,7 @@ class BioreactorDataLake:
             'actions_taken': len(actions),
             'telemetry_df': telemetry,
             'anomalies_df': anomalies,
-            'actions_df': actions
-        }
+            'actions_df': actions}
 
     def list_runs(self, spark, limit: int = 100) -> pd.DataFrame:
         df = self._read(spark, "run_metadata").orderBy("start_time", ascending=False).limit(limit)
