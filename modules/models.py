@@ -12,7 +12,7 @@ from typing import Dict, Optional, List
 import numpy as np
 import math
 
-# Utility: clamp helper
+# helper function to clamp values between set bounds
 def _clamp(x: float, lo: float = None, hi: float = None) -> float:
     if lo is not None and x < lo:
         return lo
@@ -20,12 +20,12 @@ def _clamp(x: float, lo: float = None, hi: float = None) -> float:
         return hi
     return x
 
-# Compute specific growth rate (Monod)
 def compute_mu(S_glc: float, kinetics: Dict) -> float:
     """
     Compute specific growth rate using Monod model with glucose.
     mu = mu_max * (S / (Ks + S)) * temp_factor * agitation_factor
     """
+
     mu_max = kinetics.get("mu_max", 0.04)
     Ks = kinetics.get("Ks_glc", 0.5)
     temp_factor = kinetics.get("temp_factor", 1.0)
@@ -36,30 +36,32 @@ def compute_mu(S_glc: float, kinetics: Dict) -> float:
     mu *= temp_factor * agitation_factor
     return max(mu, 0.0)
 
-# Biomass update
 def update_biomass(X: float, mu: float, kinetics: Dict, dt: float) -> float:
     """
     dX/dt = (mu - kd) * X
     """
+
     kd = kinetics.get("kd", 0.005)
     dX = (mu * X - kd * X) * dt
     X_new = X + dX
     return _clamp(X_new, lo=0.0)
 
-# Substrate (glucose) update
 def update_substrate(X: float, S_glc: float, mu: float, feed_g_L_h: float, kinetics: Dict, dt: float) -> float:
     """
+    Substrate (glucose) update function
     dS/dt = - (mu * X) / Y_xs + feed_rate (g/L/h)
     feed_g_L_h is the mass input normalized per L per hour.
     """
+
     Y_xs = kinetics.get("Y_xs", 0.5)
     dS = ( - (mu * X) / Y_xs + feed_g_L_h ) * dt
     S_new = S_glc + dS
     return _clamp(S_new, lo=0.0)
 
-# Product (titer) update
 def update_product(X: float, P: float, mu: float, kinetics: Dict, dt: float) -> float:
     """
+    Product titer update function
+
     dP/dt = alpha * mu * X + beta * X
     
     P is in g/L (not mg/mL - typical CHO titers are 1-10 g/L)
@@ -69,18 +71,19 @@ def update_product(X: float, P: float, mu: float, kinetics: Dict, dt: float) -> 
     - beta: basal (non-growth-associated) specific productivity (g/(g·h))
     - Typical values: alpha ~ 0.5-2.0, beta ~ 0.01-0.05
     """
-    alpha = kinetics.get("alpha", 1.0)  # Increased from 0.01
-    beta = kinetics.get("beta", 0.02)   # Increased from 0.0005
+
+    # TODO: refine these default values based on literature
+    alpha = kinetics.get("alpha", 1.0) 
+    beta = kinetics.get("beta", 0.02)
     
     # Product formation: growth-associated + basal
     dP = (alpha * mu * X + beta * X) * dt
     P_new = P + dP
     return _clamp(P_new, lo=0.0)
 
-# Dissolved oxygen update (proxy)
 def update_DO(X: float, DO: float, kinetics: Dict, dt: float) -> float:
     """
-    Simplified DO dynamic:
+    Simplified DO (dissolved oxygen) dynamic:
       dDO/dt = kLa*(DO_sat - DO) - OUR
     
     Bioprocess basis:
@@ -95,6 +98,7 @@ def update_DO(X: float, DO: float, kinetics: Dict, dt: float) -> float:
       For X=3 g/L, qO2=5, kLa=15 → DO_ss = 100 - (5*3)/15 = 99% (good)
       For X=3 g/L, qO2=5, kLa=3  → DO_ss = 100 - (5*3)/3  = 95% (realistic drop)
     """
+    # TODO: review these formulae
     kLa = kinetics.get("kLa", 15.0)  # Increased from 10.0 for better control
     qO2 = kinetics.get("qO2", 5.0)    # NEW: specific O2 uptake rate (%DO/(g/L·h))
     
@@ -115,9 +119,9 @@ def update_DO(X: float, DO: float, kinetics: Dict, dt: float) -> float:
     # Physical constraint: DO must be between 0-100%
     return _clamp(DO_new, lo=0.0, hi=100.0)
 
-# pH update (slow deterministic drift)
 def update_pH(pH: float, X: float, kinetics: Dict, dt: float) -> float:
     """
+    pH update with slow, deterministic drift
     Simple metabolic acidification:
       dpH/dt = - acid_rate * X
     acid_rate in pH units per (g/L·h)
@@ -128,17 +132,14 @@ def update_pH(pH: float, X: float, kinetics: Dict, dt: float) -> float:
     # Clamp to a plausible range for CHO culture
     return _clamp(pH_new, lo=6.5, hi=7.6)
 
-# Gaussian noise addition
 def add_noise(signal: float, sigma: float = 0.001) -> float:
     """Add Gaussian noise to a signal (for observed values)."""
     return signal + np.random.normal(0, sigma)
 
-# ============================================
-# FAULT INJECTION SYSTEM
-# ============================================
 
 class FaultManager:
-    """Manages fault injection during simulation runs."""
+    """FAULT INJECTION SYSTEM.
+    Manages fault injection during simulation runs."""
     
     def __init__(self, fault_templates: Dict):
         self.fault_templates = fault_templates
@@ -152,8 +153,8 @@ class FaultManager:
             fault['name'] = fault_name
             self.active_faults.append(fault)
     
-    def inject_faults(self, state: Dict, t: float, dt: float, 
-                     kinetics: Dict, base_feed_rate: float) -> tuple[Dict, float, Dict]:
+    def inject_faults(self, state: Dict, t: float, dt: float, kinetics: Dict, 
+                      base_feed_rate: float) -> tuple[Dict, float, Dict]:
         """
         Apply active faults to current state.
         Returns: (modified_state, modified_feed_rate, modified_kinetics)
@@ -167,9 +168,10 @@ class FaultManager:
             start_h = fault.get('start_h', 0)
             duration_h = fault.get('duration_h', 0)
             
-            # Check if fault is active at current time
+            # check status of fault (check if current time is within fault duration)
             if start_h <= t < (start_h + duration_h):
                 
+                # TODO: review all the logic and reasoning below
                 if fault_type == 'overfeed':
                     multiplier = fault.get('magnitude_multiplier', 1.5)
                     modified_feed = base_feed_rate * multiplier
@@ -197,7 +199,6 @@ class FaultManager:
                     modified_kinetics['temp_factor'] = temp_factor
         
         return modified_state, modified_feed, modified_kinetics
-
 
 def apply_sensor_effects(state: Dict, t: float, sensor_params: Dict, 
                         frozen_sensors: Optional[List[str]] = None) -> Dict:
@@ -234,11 +235,7 @@ def apply_sensor_effects(state: Dict, t: float, sensor_params: Dict,
     
     return obs_state
 
-
-# ============================================
-# BATCH SIMULATION RUNNER
-# ============================================
-
+# run batch simulation models
 class BioreactorSimulation:
     """Complete simulation runner with fault injection."""
     
@@ -275,30 +272,22 @@ class BioreactorSimulation:
         state = self.initial_state.copy()
         
         for t in time_points:
-            # Apply faults
-            state, feed_rate, kinetics = self.fault_manager.inject_faults(
-                state, t, dt, self.kinetics, base_feed_rate
-            )
-            
-            # Compute growth rate
+            # apply faults
+            state, feed_rate, kinetics = self.fault_manager.inject_faults(state, t, dt, self.kinetics, base_feed_rate)
+            # get growth rate
             mu = compute_mu(state['S_glc'], kinetics)
-            
-            # Update true state
+            # update true state
             state['X'] = update_biomass(state['X'], mu, kinetics, dt)
-            state['S_glc'] = update_substrate(
-                state['X'], state['S_glc'], mu, feed_rate, kinetics, dt
-            )
+            state['S_glc'] = update_substrate(state['X'], state['S_glc'], mu, feed_rate, kinetics, dt)
             state['P'] = update_product(state['X'], state['P'], mu, kinetics, dt)
             state['DO'] = update_DO(state['X'], state['DO'], kinetics, dt)
             state['pH'] = update_pH(state['pH'], state['X'], kinetics, dt)
-            
-            # Record true state
             true_snap = state.copy()
             true_snap['time'] = t
             true_snap['feed_rate'] = feed_rate
             true_history.append(true_snap)
             
-            # Create observed state with sensor effects
+            # synthesize observed state with sensor effects
             frozen = [state.get('_sensor_frozen')] if '_sensor_frozen' in state else None
             obs_snap = apply_sensor_effects(state, t, self.sensor_params, frozen)
             obs_snap['time'] = t
