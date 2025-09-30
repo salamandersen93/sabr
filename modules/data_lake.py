@@ -2,7 +2,7 @@
 """
 BioreactorDataLake
 - Provides clean interfaces to persist telemetry, anomalies, faults, agent actions, and metadata
-- Uses managed Delta tables in the Databricks Hive metastore
+- Uses managed Delta tables in the Spark metastore (not DBFS paths)
 """
 
 from typing import List, Dict, Any
@@ -10,11 +10,12 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 import json
-import pyspark.sql.functions as F
+from pyspark.sql import functions as F
+from pyspark.sql import types as T
 
 
 def save_data(df, table_name: str, mode: str = "append"):
-    """Save PySpark DataFrame to a Delta table in the Hive metastore."""
+    """Save PySpark DataFrame to Delta table in the metastore."""
     writer = df.write.format("delta").mode(mode)
     if mode == "overwrite":
         writer = writer.option("overwriteSchema", "true")
@@ -25,8 +26,7 @@ class BioreactorDataLake:
     def __init__(self, schema: str = "biopilot"):
         """
         Args:
-            schema: Schema/database in the Hive metastore to store Delta tables.
-                    Default = 'biopilot'
+            schema: Hive metastore schema (database) for all Delta tables.
         """
         self.schema = schema
         self.tables = {
@@ -37,11 +37,91 @@ class BioreactorDataLake:
             "fault_log": f"{schema}.fault_log"
         }
 
-    # ----------------------------
+    # ----------------------------------------------------------------
+    # Schema/table creation
+    # ----------------------------------------------------------------
+    def create_schema_and_tables(self, spark):
+        """Create schema and Delta tables if they do not exist."""
+
+        # Ensure schema exists
+        spark.sql(f"CREATE SCHEMA IF NOT EXISTS {self.schema}")
+
+        # Telemetry
+        spark.sql(f"""
+        CREATE TABLE IF NOT EXISTS {self.tables['telemetry']} (
+            run_id STRING,
+            time_h DOUBLE,
+            signal_name STRING,
+            value DOUBLE,
+            is_observed BOOLEAN,
+            timestamp TIMESTAMP,
+            batch_id INT
+        ) USING DELTA
+        """)
+
+        # Anomaly Scores
+        spark.sql(f"""
+        CREATE TABLE IF NOT EXISTS {self.tables['anomaly_scores']} (
+            run_id STRING,
+            time_h DOUBLE,
+            signal_name STRING,
+            method STRING,
+            score DOUBLE,
+            is_anomaly BOOLEAN,
+            context STRING,
+            timestamp TIMESTAMP
+        ) USING DELTA
+        """)
+
+        # Fault Log
+        spark.sql(f"""
+        CREATE TABLE IF NOT EXISTS {self.tables['fault_log']} (
+            run_id STRING,
+            fault_id STRING,
+            fault_type STRING,
+            start_time DOUBLE,
+            duration DOUBLE,
+            parameters STRING,
+            timestamp TIMESTAMP
+        ) USING DELTA
+        """)
+
+        # Agent Actions
+        spark.sql(f"""
+        CREATE TABLE IF NOT EXISTS {self.tables['agent_actions']} (
+            run_id STRING,
+            action_id STRING,
+            time DOUBLE,
+            action_type STRING,
+            parameters STRING,
+            rationale STRING,
+            timestamp TIMESTAMP
+        ) USING DELTA
+        """)
+
+        # Run Metadata
+        spark.sql(f"""
+        CREATE TABLE IF NOT EXISTS {self.tables['run_metadata']} (
+            run_id STRING,
+            config STRING,
+            scenario STRING,
+            final_titer DOUBLE,
+            num_anomalies INT,
+            num_actions INT,
+            success BOOLEAN,
+            score DOUBLE,
+            start_time TIMESTAMP,
+            end_time TIMESTAMP
+        ) USING DELTA
+        """)
+
+    # ----------------------------------------------------------------
     # Save methods
-    # ----------------------------
-    def save_telemetry(self, spark, run_id: str, telemetry_data: List[Dict],
-                       is_observed: bool = True, batch_id: int = 0):
+    # ----------------------------------------------------------------
+    def save_telemetry(
+        self, spark, run_id: str, telemetry_data: List[Dict],
+        is_observed: bool = True, batch_id: int = 0):
+
         records = []
         timestamp = datetime.now()
         for snapshot in telemetry_data:
@@ -60,25 +140,25 @@ class BioreactorDataLake:
                         'timestamp': timestamp,
                         'batch_id': int(batch_id)
                     })
-        df = spark.createDataFrame(records)
-        save_data(df, self.tables["telemetry"])
+        if records:
+            df = spark.createDataFrame(records)
+            save_data(df, self.tables["telemetry"])
 
     def save_anomaly_scores(self, spark, run_id: str, anomaly_scores: List):
-        records = []
         timestamp = datetime.now()
-        for score_obj in anomaly_scores:
-            records.append({
-                'run_id': str(run_id),
-                'time_h': float(score_obj.time),
-                'signal_name': str(getattr(score_obj, "signal_name", getattr(score_obj, "signal", ""))),
-                'method': str(score_obj.method),
-                'score': float(score_obj.score),
-                'is_anomaly': bool(score_obj.is_anomaly),
-                'context': json.dumps(score_obj.context) if score_obj.context else None,
-                'timestamp': timestamp
-            })
-        df = spark.createDataFrame(records)
-        save_data(df, self.tables["anomaly_scores"])
+        records = [{
+            'run_id': str(run_id),
+            'time_h': float(score_obj.time),
+            'signal_name': str(getattr(score_obj, "signal_name", getattr(score_obj, "signal", ""))),
+            'method': str(score_obj.method),
+            'score': float(score_obj.score),
+            'is_anomaly': bool(score_obj.is_anomaly),
+            'context': json.dumps(score_obj.context) if score_obj.context else None,
+            'timestamp': timestamp
+        } for score_obj in anomaly_scores]
+        if records:
+            df = spark.createDataFrame(records)
+            save_data(df, self.tables["anomaly_scores"])
 
     def save_fault_log(self, spark, run_id: str, fault_id: str,
                        fault_type: str, start_time: float, duration: float,
@@ -126,9 +206,9 @@ class BioreactorDataLake:
         }])
         save_data(df, self.tables["run_metadata"])
 
-    # ----------------------------
+    # ----------------------------------------------------------------
     # Query methods
-    # ----------------------------
+    # ----------------------------------------------------------------
     def _read(self, spark, name: str):
         return spark.read.table(self.tables[name])
 
@@ -170,5 +250,6 @@ class BioreactorDataLake:
         return df.toPandas()
 
     def delete_run(self, spark, run_id: str):
-        for table in self.tables.values():
-            spark.sql(f"DELETE FROM {table} WHERE run_id = '{run_id}'")
+        for name, _ in self.tables.items():
+            df = self._read(spark, name)
+            df.filter(F.col("run_id") != run_id).write.format("delta").mode("overwrite").saveAsTable(self.tables[name])
