@@ -61,10 +61,18 @@ def update_substrate(X: float, S_glc: float, mu: float, feed_g_L_h: float, kinet
 def update_product(X: float, P: float, mu: float, kinetics: Dict, dt: float) -> float:
     """
     dP/dt = alpha * mu * X + beta * X
-    P is in mg/mL (scaling choices are arbitrary but consistent)
+    
+    P is in g/L (not mg/mL - typical CHO titers are 1-10 g/L)
+    
+    Bioprocess basis:
+    - alpha: specific productivity during growth (g product / g biomass)
+    - beta: basal (non-growth-associated) specific productivity (g/(g·h))
+    - Typical values: alpha ~ 0.5-2.0, beta ~ 0.01-0.05
     """
-    alpha = kinetics.get("alpha", 0.01)
-    beta = kinetics.get("beta", 0.0005)
+    alpha = kinetics.get("alpha", 1.0)  # Increased from 0.01
+    beta = kinetics.get("beta", 0.02)   # Increased from 0.0005
+    
+    # Product formation: growth-associated + basal
     dP = (alpha * mu * X + beta * X) * dt
     P_new = P + dP
     return _clamp(P_new, lo=0.0)
@@ -74,16 +82,37 @@ def update_DO(X: float, DO: float, kinetics: Dict, dt: float) -> float:
     """
     Simplified DO dynamic:
       dDO/dt = kLa*(DO_sat - DO) - OUR
-    where OUR is approximated as o2_uptake_coeff * X (units scaled to %/h)
+    
+    Bioprocess basis:
+    - kLa: volumetric mass transfer coefficient (1/h)
+      Typical stirred tank: 5-50 h⁻¹ depending on agitation/sparging
+    - OUR: oxygen uptake rate (%DO/h)
+      Approximated as qO2 * X where qO2 is specific oxygen uptake rate
+      For CHO: qO2 ~ 0.05-0.2 mmol/(g·h) → roughly 2-8 %DO/(g/L·h)
+    
+    The driving force (DO_sat - DO) must balance OUR at steady state:
+      kLa * (100 - DO_ss) = qO2 * X
+      For X=3 g/L, qO2=5, kLa=15 → DO_ss = 100 - (5*3)/15 = 99% (good)
+      For X=3 g/L, qO2=5, kLa=3  → DO_ss = 100 - (5*3)/3  = 95% (realistic drop)
     """
-    kLa = kinetics.get("kLa", 10.0)
-    o2_uptake_coeff = kinetics.get("o2_uptake_coeff", 0.02)
-
+    kLa = kinetics.get("kLa", 15.0)  # Increased from 10.0 for better control
+    qO2 = kinetics.get("qO2", 5.0)    # NEW: specific O2 uptake rate (%DO/(g/L·h))
+    
+    # For backward compatibility, support old parameter
+    if "o2_uptake_coeff" in kinetics:
+        qO2 = kinetics["o2_uptake_coeff"] * 100  # Convert if old param used
+    
     # DO saturation is 100% in our normalized units
     DO_sat = 100.0
-    OUR = o2_uptake_coeff * X  # %/h equivalent proxy
-    dDO = kLa * (DO_sat - DO) * dt - OUR * dt
+    
+    # Oxygen uptake rate (OUR) in %DO/h
+    OUR = qO2 * X
+    
+    # Mass balance: oxygen transfer in - oxygen consumed
+    dDO = (kLa * (DO_sat - DO) - OUR) * dt
     DO_new = DO + dDO
+    
+    # Physical constraint: DO must be between 0-100%
     return _clamp(DO_new, lo=0.0, hi=100.0)
 
 # pH update (slow deterministic drift)

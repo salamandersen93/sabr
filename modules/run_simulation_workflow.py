@@ -58,6 +58,7 @@ class BioPilotWorkflow:
         username = spark.sql("SELECT current_user()").collect()[0][0] # UNUSED
         base_path = f"dbfs:/user/{username}/biopilot"
         self.data_lake = BioreactorDataLake()
+        self.data_lake.create_schema_and_tables(spark)
         
         # Anomaly detection
         self.enable_anomaly_detection = enable_anomaly_detection
@@ -361,7 +362,7 @@ def run_batch_scenarios(spark, scenarios: List[str],
             )
             
             # Inject scenario fault
-            if scenario != "baseline":
+            if scenario != "standard":
                 workflow.inject_scenario_faults(scenario=scenario)
             
             # Run
@@ -510,7 +511,7 @@ if __name__ == "__main__":
     
     # Example 3: Batch run multiple scenarios
     print("\n### Example 3: Batch Scenario Testing ###")
-    scenarios = ['baseline', 'overfeed', 'underfeed', 'DO_drop']
+    scenarios = ['standard', 'overfeed', 'underfeed', 'DO_drop']
     batch_summary = run_batch_scenarios(spark, scenarios, num_replicates=3)
     
     print("\nBatch run complete!")

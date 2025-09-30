@@ -30,11 +30,11 @@ class BioreactorDataLake:
         """
         self.schema = schema
         self.tables = {
-            "telemetry": f"{schema}.telemetry",
-            "anomaly_scores": f"{schema}.anomaly_scores",
-            "agent_actions": f"{schema}.agent_actions",
-            "run_metadata": f"{schema}.run_metadata",
-            "fault_log": f"{schema}.fault_log"
+            "telemetry": "telemetry",
+            "anomaly_scores": "anomaly_scores",
+            "agent_actions": "agent_actions",
+            "run_metadata": "run_metadata",
+            "fault_log": "fault_log"
         }
 
     # ----------------------------------------------------------------
