@@ -54,8 +54,10 @@ class BioPilotWorkflow:
         self.simulation = BioreactorSimulation(config_dict)
         
         # Data lake (filesystem-backed Delta tables)
-        self.data_lake = BioreactorDataLake(base_namespace="biopilot")
-        self.data_lake.initialize_schema(spark)
+        # Get the current Databricks user 
+        username = spark.sql("SELECT current_user()").collect()[0][0] # UNUSED
+        base_path = f"dbfs:/user/{username}/biopilot"
+        self.data_lake = BioreactorDataLake()
         
         # Anomaly detection
         self.enable_anomaly_detection = enable_anomaly_detection
