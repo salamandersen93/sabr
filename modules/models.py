@@ -3,7 +3,7 @@ models.py
 
 Deterministic process update functions for the synthetic bioreactor (MVP).
 - Compute mu using Monod for glucose.
-- Update biomass, substrate, product, DO, and pH deterministically.
+- Update biomass, substrate, product, DO, and pH deterministically
 - Fault injection logic
 - Models are kept simple, documented, and unit-consistent for use in the game engine.
 """

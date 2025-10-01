@@ -93,7 +93,6 @@ class BioreactorDataLake:
             scenario STRING,
             final_titer DOUBLE,
             num_anomalies INT,
-            num_actions INT,
             success BOOLEAN,
             score DOUBLE,
             start_time TIMESTAMP,
@@ -169,7 +168,7 @@ class BioreactorDataLake:
 
     def save_run_metadata(self, spark, run_id: str, config: Dict[str, Any],
                           scenario: str, final_titer: float, num_anomalies: int,
-                          num_actions: int, success: bool, score: float,
+                          success: bool, score: float,
                           start_time: datetime, end_time: datetime):
         df = spark.createDataFrame([{
             'run_id': run_id,
@@ -177,7 +176,6 @@ class BioreactorDataLake:
             'scenario': scenario,
             'final_titer': float(final_titer),
             'num_anomalies': int(num_anomalies),
-            'num_actions': int(num_actions),
             'success': bool(success),
             'score': float(score),
             'start_time': start_time,
