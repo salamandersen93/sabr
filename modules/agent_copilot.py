@@ -11,7 +11,6 @@ from enum import Enum
 import numpy as np
 import pandas as pd
 
-
 class ActionType(Enum):
     """Types of control actions the agent can take."""
     ADJUST_FEED = "adjust_feed"
@@ -174,6 +173,7 @@ class RuleBasedAgent:
                     ))
         
         # Rule 5: Routine monitoring
+        # TODO: add more assays (host cell protein, residual DNA, bioactivity)
         assay_interval = self.rules.get('assay_schedule', {}).get('interval_h', 24.0)
         if len(self.action_history) == 0 or \
            (time - self._last_assay_time() > assay_interval):
@@ -204,7 +204,7 @@ class RuleBasedAgent:
 
 
 class PredictiveAgent:
-    """ML-based predictive agent (placeholder for future ML models)."""
+    """TODO: ML-based predictive agent (placeholder for future ML models)."""
     
     def __init__(self, model_path: Optional[str] = None):
         """
@@ -219,7 +219,7 @@ class PredictiveAgent:
     def predict_trajectory(self, current_state: Dict, 
                           horizon_hours: float = 24.0) -> Dict:
         """
-        Predict future trajectory given current state.
+        TODO: Predict future trajectory given current state.
         
         Returns:
             {
@@ -233,7 +233,8 @@ class PredictiveAgent:
         X = current_state.get('X', 0.1)
         P = current_state.get('P', 0.0)
         
-        # Simple linear extrapolation (replace with ML model)
+        # Simple linear extrapolation 
+        # TODO: (replace with ML model)
         growth_rate = 0.03  # placeholder
         predicted_X = X * np.exp(growth_rate * horizon_hours)
         predicted_P = P + 0.01 * predicted_X * horizon_hours
@@ -336,11 +337,9 @@ class MultiAgentCopilot:
         report.append("=" * 60)
         report.append("AGENT COPILOT SUMMARY REPORT")
         report.append("=" * 60)
-        report.append("")
         
         # Action summary
         report.append(f"Total Actions Proposed: {len(actions)}")
-        report.append("")
         
         action_types = {}
         for action in actions:
@@ -351,8 +350,7 @@ class MultiAgentCopilot:
         for at, count in sorted(action_types.items(), 
                                key=lambda x: x[1], reverse=True):
             report.append(f"  {at}: {count}")
-        report.append("")
-        
+
         # High priority actions
         high_priority = [a for a in actions if a.priority >= 4]
         if high_priority:
@@ -378,9 +376,9 @@ class MultiAgentCopilot:
         records = [a.to_dict() for a in self.all_actions]
         return pd.DataFrame(records)
 
-
 def create_default_copilot_config() -> Dict:
-    """Create sensible default configuration for bioreactor copilot."""
+    """Create sensible default configuration for bioreactor copilot.
+    TODO: refine these based on literature references and make them dynamic/configurable"""
     return {
         'feed_adjustment': {
             'substrate_low_threshold': 2.0,
