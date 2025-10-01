@@ -10,6 +10,9 @@ from dataclasses import dataclass
 from enum import Enum
 import numpy as np
 import pandas as pd
+import mlflow.deployments
+import json
+
 
 class ActionType(Enum):
     """Types of control actions the agent can take."""
@@ -52,36 +55,38 @@ class AgentObservation:
     recent_actions: List[AgentAction]
     available_budget: Dict  # Resources available (assays, etc.)
 
+# ----------------------------------------------------------------------
+# Agent implementations
+# ----------------------------------------------------------------------
+
+class ExplainerAgent:
+    def __init__(self, llama_client: LlamaCrewAgent):
+        self.client = llama_client
+
+    def explain(self, telemetry_snapshot: dict, anomalies: list, actions: list) -> str:
+        prompt = f"""
+        You are a bioprocess expert. Analyze the following CHO cell
+        bioreactor conditions and provide possible explanations.
+
+        Telemetry: {telemetry_snapshot}
+        Anomalies: {anomalies}
+        Actions: {actions}
+
+        Give a concise, mechanistic explanation of why these
+        conditions might arise in a fed-batch CHO culture.
+        """
+        response = self.client(prompt, temperature=0.3, max_tokens=300)
+        return response
+
 
 class RuleBasedAgent:
     """Rule-based control agent for bioreactor management."""
     
     def __init__(self, rules_config: Dict):
-        """
-        Initialize with rule configuration.
-        
-        rules_config format:
-        {
-            'feed_adjustment': {
-                'substrate_low_threshold': 2.0,
-                'substrate_high_threshold': 40.0,
-                'feed_increase_factor': 1.2,
-                'feed_decrease_factor': 0.8
-            },
-            'DO_control': {
-                'low_threshold': 30.0,
-                'agitation_increase_factor': 1.1
-            },
-            ...
-        }
-        """
         self.rules = rules_config
         self.action_history = []
     
     def observe_and_act(self, observation: AgentObservation) -> List[AgentAction]:
-        """
-        Evaluate rules and return list of proposed actions.
-        """
         actions = []
         telemetry = observation.telemetry
         time = observation.time
@@ -92,7 +97,6 @@ class RuleBasedAgent:
             feed_rules = self.rules.get('feed_adjustment', {})
             
             if S < feed_rules.get('substrate_low_threshold', 2.0):
-                # Increase feed
                 actions.append(AgentAction(
                     action_type=ActionType.ADJUST_FEED,
                     parameters={'multiplier': feed_rules.get('feed_increase_factor', 1.2)},
@@ -103,7 +107,6 @@ class RuleBasedAgent:
                 ))
             
             elif S > feed_rules.get('substrate_high_threshold', 40.0):
-                # Decrease feed
                 actions.append(AgentAction(
                     action_type=ActionType.ADJUST_FEED,
                     parameters={'multiplier': feed_rules.get('feed_decrease_factor', 0.8)},
@@ -161,7 +164,6 @@ class RuleBasedAgent:
             ]
             
             if high_priority_anomalies:
-                # Request assay if budget available
                 if observation.available_budget.get('assays', 0) > 0:
                     actions.append(AgentAction(
                         action_type=ActionType.REQUEST_ASSAY,
@@ -173,7 +175,6 @@ class RuleBasedAgent:
                     ))
         
         # Rule 5: Routine monitoring
-        # TODO: add more assays (host cell protein, residual DNA, bioactivity)
         assay_interval = self.rules.get('assay_schedule', {}).get('interval_h', 24.0)
         if len(self.action_history) == 0 or \
            (time - self._last_assay_time() > assay_interval):
@@ -187,13 +188,10 @@ class RuleBasedAgent:
                     priority=2
                 ))
         
-        # Log actions
         self.action_history.extend(actions)
-        
         return actions
     
     def _last_assay_time(self) -> float:
-        """Get time of last assay request."""
         assay_actions = [
             a for a in self.action_history 
             if a.action_type == ActionType.REQUEST_ASSAY
@@ -207,35 +205,14 @@ class PredictiveAgent:
     """TODO: ML-based predictive agent (placeholder for future ML models)."""
     
     def __init__(self, model_path: Optional[str] = None):
-        """
-        Initialize with trained model.
-        
-        For MVP, this is a placeholder. Future versions will load
-        trained ML models for outcome prediction.
-        """
-        self.model = None  # Placeholder for ML model
+        self.model = None
         self.model_path = model_path
     
     def predict_trajectory(self, current_state: Dict, 
                           horizon_hours: float = 24.0) -> Dict:
-        """
-        TODO: Predict future trajectory given current state.
-        
-        Returns:
-            {
-                'predicted_titer': float,
-                'predicted_viability': float,
-                'confidence': float,
-                'risk_factors': List[str]
-            }
-        """
-        # Placeholder: simple heuristic prediction
         X = current_state.get('X', 0.1)
         P = current_state.get('P', 0.0)
-        
-        # Simple linear extrapolation 
-        # TODO: (replace with ML model)
-        growth_rate = 0.03  # placeholder
+        growth_rate = 0.03
         predicted_X = X * np.exp(growth_rate * horizon_hours)
         predicted_P = P + 0.01 * predicted_X * horizon_hours
         
@@ -248,11 +225,7 @@ class PredictiveAgent:
     
     def recommend_action(self, prediction: Dict, 
                         current_state: Dict) -> Optional[AgentAction]:
-        """
-        Recommend action based on prediction.
-        """
-        # Placeholder logic
-        if prediction['predicted_titer'] < 5.0:  # Arbitrary threshold
+        if prediction['predicted_titer'] < 5.0:
             return AgentAction(
                 action_type=ActionType.ADJUST_FEED,
                 parameters={'multiplier': 1.1},
@@ -261,7 +234,6 @@ class PredictiveAgent:
                 time=current_state.get('time', 0.0),
                 priority=3
             )
-        
         return None
 
 
@@ -270,13 +242,6 @@ class MultiAgentCopilot:
     
     def __init__(self, rule_agent_config: Dict, 
                  use_predictive: bool = False):
-        """
-        Initialize multi-agent system.
-        
-        Args:
-            rule_agent_config: Configuration for rule-based agent
-            use_predictive: Whether to include predictive agent
-        """
         self.rule_agent = RuleBasedAgent(rule_agent_config)
         self.predictive_agent = PredictiveAgent() if use_predictive else None
         
@@ -284,20 +249,12 @@ class MultiAgentCopilot:
         self.observation_history = []
     
     def process_observation(self, observation: AgentObservation) -> List[AgentAction]:
-        """
-        Process current observation and generate action recommendations.
-        
-        Returns list of proposed actions sorted by priority.
-        """
         self.observation_history.append(observation)
         
         actions = []
-        
-        # Get rule-based recommendations
         rule_actions = self.rule_agent.observe_and_act(observation)
         actions.extend(rule_actions)
         
-        # Get predictive recommendations
         if self.predictive_agent:
             prediction = self.predictive_agent.predict_trajectory(
                 observation.telemetry
@@ -309,21 +266,12 @@ class MultiAgentCopilot:
             if pred_action:
                 actions.append(pred_action)
         
-        # Sort by priority
         actions.sort(key=lambda a: a.priority, reverse=True)
-        
-        # Log all actions
         self.all_actions.extend(actions)
         
         return actions
     
     def generate_report(self, time_window: Optional[Tuple[float, float]] = None) -> str:
-        """
-        Generate summary report of agent actions and observations.
-        
-        Args:
-            time_window: Optional (start_time, end_time) to filter report
-        """
         if time_window:
             start, end = time_window
             actions = [a for a in self.all_actions if start <= a.time <= end]
@@ -337,8 +285,6 @@ class MultiAgentCopilot:
         report.append("=" * 60)
         report.append("AGENT COPILOT SUMMARY REPORT")
         report.append("=" * 60)
-        
-        # Action summary
         report.append(f"Total Actions Proposed: {len(actions)}")
         
         action_types = {}
@@ -351,34 +297,32 @@ class MultiAgentCopilot:
                                key=lambda x: x[1], reverse=True):
             report.append(f"  {at}: {count}")
 
-        # High priority actions
         high_priority = [a for a in actions if a.priority >= 4]
         if high_priority:
             report.append(f"High Priority Actions ({len(high_priority)}):")
-            for action in high_priority[:10]:  # Show top 10
+            for action in high_priority[:10]:
                 report.append(f"  t={action.time:.1f}h: {action.rationale}")
             report.append("")
         
-        # Anomaly response
         total_anomalies = sum(
             len(obs.recent_anomalies) 
             for obs in observations
         )
         report.append(f"Total Anomalies Observed: {total_anomalies}")
         report.append("")
-        
         report.append("=" * 60)
         
         return "\n".join(report)
     
     def get_action_dataframe(self) -> pd.DataFrame:
-        """Convert action history to pandas DataFrame for analysis."""
         records = [a.to_dict() for a in self.all_actions]
         return pd.DataFrame(records)
 
+# ----------------------------------------------------------------------
+# Default configuration factory
+# ----------------------------------------------------------------------
+
 def create_default_copilot_config() -> Dict:
-    """Create sensible default configuration for bioreactor copilot.
-    TODO: refine these based on literature references and make them dynamic/configurable"""
     return {
         'feed_adjustment': {
             'substrate_low_threshold': 2.0,
@@ -402,7 +346,7 @@ def create_default_copilot_config() -> Dict:
             'anomaly_triggered': True
         },
         'alert_thresholds': {
-            'biomass_crash_rate': -0.1,  # g/L per hour
+            'biomass_crash_rate': -0.1,
             'DO_critical': 15.0,
             'pH_critical_low': 6.5,
             'pH_critical_high': 7.6
