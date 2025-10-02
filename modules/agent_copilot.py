@@ -34,7 +34,6 @@ class LlamaCrewAgent:
         return response
 
 # AGENTIC PROCESSES
-
 class ExplainerAgent:
     def __init__(self, endpoint="databricks-meta-llama-3-3-70b-instruct"):
         self.client = mlflow.deployments.get_deploy_client("databricks")
@@ -80,44 +79,3 @@ class ExplainerAgent:
         result = crew.kickoff()
         print(result)
         return result
-    
-# ---------------------------
-# True Agent wrapper (Databricks Llama)
-# ---------------------------
-class LlamaRootCauseAgent:
-    def __init__(self, endpoint="databricks-meta-llama-3-3-70b-instruct"):
-        self.client = mlflow.deployments.get_deploy_client("databricks")
-        self.endpoint = endpoint
-
-    def analyze(self, observation) -> dict:
-        """Ask the LLM to analyze telemetry and anomalies."""
-        messages = [
-            {"role": "system", "content": "You are a bioprocess expert. Explain anomalies in bioreactor telemetry and recommend operator actions."},
-            {"role": "user", "content": f"""
-            Telemetry: {observation.telemetry}
-            Anomalies: {[str(a.__dict__) for a in observation.recent_anomalies]}
-            Time: {observation.time} h
-            Assay budget remaining: {observation.available_budget['assays']}
-
-            Respond ONLY in JSON with fields:
-            root_cause: str
-            recommended_action: str
-            priority: int (1=low, 5=critical)
-            rationale: str
-            """}
-        ]
-
-        response = self.client.predict(
-            endpoint=self.endpoint,
-            inputs={"messages": messages, "temperature": 0.2, "max_tokens": 300}
-        )
-
-        try:
-            return json.loads(response["choices"][0]["message"]["content"])
-        except Exception:
-            return {
-                "root_cause": "Unknown",
-                "recommended_action": "No action",
-                "priority": 1,
-                "rationale": "Model output not parsed as JSON."
-            }

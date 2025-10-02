@@ -9,6 +9,7 @@ Deterministic process update functions for the synthetic bioreactor (MVP).
 """
 
 from typing import Dict, Optional, List
+from sensor_noise import AdvancedSensorModel, apply_sensor_effects_enhanced
 import numpy as np
 import math
 
@@ -43,7 +44,8 @@ def update_biomass(X: float, mu: float, kinetics: Dict, dt: float) -> float:
     X_new = X + dX
     return _clamp(X_new, lo=0.0)
 
-def update_substrate(X: float, S_glc: float, mu: float, feed_g_L_h: float, kinetics: Dict, dt: float) -> float:
+def update_substrate(X: float, S_glc: float, mu: float, 
+                     feed_g_L_h: float, kinetics: Dict, dt: float) -> float:
     """
     Substrate (glucose) update function
     dS/dt = - (mu * X) / Y_xs + feed_rate (g/L/h)
@@ -78,56 +80,60 @@ def update_product(X: float, P: float, mu: float, kinetics: Dict, dt: float) -> 
 
 def update_DO(X: float, DO: float, kinetics: Dict, dt: float) -> float:
     """
-    Simplified DO (dissolved oxygen) dynamic:
-      dDO/dt = kLa*(DO_sat - DO) - OUR
-    
-    Bioprocess basis:
-    - kLa: volumetric mass transfer coefficient (1/h)
-      Typical stirred tank: 5-50 h⁻¹ depending on agitation/sparging
-    - OUR: oxygen uptake rate (%DO/h)
-      Approximated as qO2 * X where qO2 is specific oxygen uptake rate
-      For CHO: qO2 ~ 0.05-0.2 mmol/(g·h) → roughly 2-8 %DO/(g/L·h)
-    
-    The driving force (DO_sat - DO) must balance OUR at steady state:
-      kLa * (100 - DO_ss) = qO2 * X
-      For X=3 g/L, qO2=5, kLa=15 → DO_ss = 100 - (5*3)/15 = 99% (good)
-      For X=3 g/L, qO2=5, kLa=3  → DO_ss = 100 - (5*3)/3  = 95% (realistic drop)
+    Numerically stable DO update using the analytic solution for
+    dDO/dt = kLa*(DO_sat - DO) - OUR
     """
-    # TODO: review these formulae
-    kLa = kinetics.get("kLa", 15.0)  # Increased from 10.0 for better control
-    qO2 = kinetics.get("qO2", 5.0)    # NEW: specific O2 uptake rate (%DO/(g/L·h))
-    
-    # For backward compatibility, support old parameter
+    kLa = kinetics.get("kLa", 15.0)
+    qO2 = kinetics.get("qO2", 5.0)  # ensure this is %DO/(g/L·h)
     if "o2_uptake_coeff" in kinetics:
-        qO2 = kinetics["o2_uptake_coeff"] * 100  # Convert if old param used
-    
-    # DO saturation is 100% in our normalized units
+        # Only keep this if you actually intend this conversion — review it.
+        qO2 = kinetics["o2_uptake_coeff"] * 100
+
     DO_sat = 100.0
-    # Oxygen uptake rate (OUR) in %DO/h
-    OUR = qO2 * X
-    # mass balance: oxygen transfer in - oxygen consumed
-    dDO = (kLa * (DO_sat - DO) - OUR) * dt
-    DO_new = DO + dDO
-    
-    # clamp between 0 and 100
+    OUR = qO2 * X  # %DO/h
+
+    # Avoid division by zero on pathological kLa
+    if kLa <= 0:
+        # fallback to simple explicit update if kLa==0
+        dDO = (-OUR) * dt
+        return _clamp(DO + dDO, 0.0, 100.0)
+
+    # steady-state DO for this instant
+    DO_ss = DO_sat - OUR / kLa
+
+    # analytic update (exact for linear ODE)
+    DO_new = DO_ss + (DO - DO_ss) * math.exp(-kLa * dt)
+
     return _clamp(DO_new, lo=0.0, hi=100.0)
 
-def update_pH(pH: float, X: float, kinetics: Dict, dt: float) -> float:
+def update_pH(pH: float, X: float, kinetics: Dict, dt: float, 
+              base_override: float = None) -> float:
     """
-    pH update with slow, deterministic drift
-    Simple metabolic acidification:
-      dpH/dt = - acid_rate * X
-    acid_rate in pH units per (g/L·h)
-    """
-    acid_rate = kinetics.get("acid_rate", 0.0005)
-    dpH = - acid_rate * X * dt
-    pH_new = pH + dpH
-    # clamp to a plausible range for CHO culture
-    return _clamp(pH_new, lo=6.5, hi=7.6)
+    pH update with acidification + base dosing.
 
-def add_noise(signal: float, sigma: float = 0.001) -> float:
-    """Add Gaussian noise to a signal (for observed values)."""
-    return signal + np.random.normal(0, sigma)
+    Acidification:
+        dpH/dt = - acid_prod_coeff * X / buffer_capacity
+    
+    Base dosing (continuous pump version):
+        If pH < setpoint - deadband:
+            dpH = (effective_base_mol / buffer_capacity) * dt
+    """
+    # Acidification
+    acid_coeff = kinetics.get("acid_prod_coeff", 1e-4)   # mol H+/g/h
+    buffer_capacity = kinetics.get("buffer_capacity", 0.025)  # mol/(L·pH)
+    dpH_acid = -(acid_coeff * X / buffer_capacity) * dt
+    pH_new = pH + dpH_acid
+
+    # Base dosing
+    setpoint = kinetics.get("pH_setpoint", 7.0)
+    deadband = kinetics.get("pH_deadband", 0.05)
+    base_dose_mol = base_override if base_override is not None else kinetics.get("base_dose_mol", 2e-4)
+
+    if pH_new < setpoint - deadband and base_dose_mol > 0:
+        dpH_base = (base_dose_mol / buffer_capacity) * dt
+        pH_new += dpH_base
+
+    return _clamp(pH_new, lo=6.5, hi=7.6)
 
 class FaultManager:
     """FAULT INJECTION SYSTEM.
@@ -163,7 +169,7 @@ class FaultManager:
             # check status of fault (check if current time is within fault duration)
             if start_h <= t < (start_h + duration_h):
                 
-                # TODO: review all the logic and reasoning below
+                # TODO: review all the logic and reasoning below, add as many faults as possible to this list
                 if fault_type == 'overfeed':
                     multiplier = fault.get('magnitude_multiplier', 1.5)
                     modified_feed = base_feed_rate * multiplier
@@ -178,8 +184,6 @@ class FaultManager:
                     modified_kinetics['kLa'] = kinetics['kLa'] * 0.3
                 
                 elif fault_type == 'sensor_freeze':
-                    # This would be handled at observation layer
-                    # Mark in state metadata for observation handling
                     modified_state['_sensor_frozen'] = fault.get('sensor', 'DO')
                 
                 elif fault_type == 'contamination':
@@ -189,44 +193,24 @@ class FaultManager:
                 elif fault_type == 'temp_shift':
                     temp_factor = fault.get('temp_factor', 0.7)
                     modified_kinetics['temp_factor'] = temp_factor
+
+                elif fault_type == 'base_overdose':
+                    multiplier = fault.get('magnitude_multiplier', 2)
+                    modified_kinetics['base_dose_mol'] = kinetics['base_dose_mol'] * multiplier
+                
+                elif fault_type == 'base_underdose':
+                    multiplier = fault.get('magnitude_multiplier', 0.5)
+                    modified_kinetics['base_dose_mol'] = kinetics['base_dose_mol'] * multiplier 
+                
+                elif fault_type == 'base_pump_stuck':
+                    multiplier = fault.get('magnitude_multiplier', 0)
+                    modified_kinetics['base_dose_mol'] = kinetics['base_dose_mol'] * multiplier
+                
+                elif fault_type == 'sudden_base_bolus':
+                    multiplier = fault.get('magnitude_multiplier', 10)
+                    modified_kinetics['base_dose_mol'] = kinetics['base_dose_mol'] * multiplier
         
         return modified_state, modified_feed, modified_kinetics
-
-def apply_sensor_effects(state: Dict, t: float, sensor_params: Dict, 
-                        frozen_sensors: Optional[List[str]] = None) -> Dict:
-    """
-    Apply sensor noise, drift, and dropout to observed state.
-    
-    Args:
-        state: True state dictionary
-        t: Current time
-        sensor_params: Sensor configuration
-        frozen_sensors: List of sensors currently frozen
-    
-    Returns:
-        Observed state with sensor effects applied
-    """
-    obs_state = state.copy()
-    
-    sigma = sensor_params.get('sensor_noise_sigma', 0.0001)
-    drift_rate = sensor_params.get('sensor_drift_rate', 0.00005)
-    
-    sensors = ['X', 'S_glc', 'P', 'DO', 'pH']
-    frozen = frozen_sensors or []
-    
-    for sensor in sensors:
-        if sensor in state:
-            if sensor in frozen:
-                # Sensor frozen - don't update (would need previous value stored)
-                continue
-            else:
-                # Apply noise & drift
-                # TODO: apply variable levels of noise and drift based on sensor type and measurement
-                # for example, pH drift/noise will be significantly different than DO/X
-                obs_state[sensor] = add_noise(state[sensor], sigma)
-                obs_state[sensor] += drift_rate * t
-    
-    return obs_state
 
 # main class to run simulations
 class BioreactorSimulation:
@@ -244,6 +228,9 @@ class BioreactorSimulation:
         self.fault_templates = config_dict['FAULT_TEMPLATES']
         
         self.fault_manager = FaultManager(self.fault_templates)
+        
+        # NEW: Initialize advanced sensor model
+        self.sensor_model = AdvancedSensorModel()
         
         # Set random seed
         np.random.seed(self.sim_params['random_seed'])
@@ -266,24 +253,52 @@ class BioreactorSimulation:
         
         for t in time_points:
             # apply faults
-            state, feed_rate, kinetics = self.fault_manager.inject_faults(state, t, dt, self.kinetics, base_feed_rate)
+            state, feed_rate, kinetics = self.fault_manager.inject_faults(
+                state, t, dt, self.kinetics, base_feed_rate
+            )
+            
             # get growth rate
             mu = compute_mu(state['S_glc'], kinetics)
+            
             # update true state
             state['X'] = update_biomass(state['X'], mu, kinetics, dt)
             state['S_glc'] = update_substrate(state['X'], state['S_glc'], mu, feed_rate, kinetics, dt)
             state['P'] = update_product(state['X'], state['P'], mu, kinetics, dt)
             state['DO'] = update_DO(state['X'], state['DO'], kinetics, dt)
+            
+            # FIXED: pH update (was referencing undefined 'pH' variable and had wrong params)
             state['pH'] = update_pH(state['pH'], state['X'], kinetics, dt)
+            
             true_snap = state.copy()
             true_snap['time'] = t
             true_snap['feed_rate'] = feed_rate
             true_history.append(true_snap)
             
-            # synthesize observed state with sensor effects
+            # UPDATED: Use enhanced sensor model
             frozen = [state.get('_sensor_frozen')] if '_sensor_frozen' in state else None
-            obs_snap = apply_sensor_effects(state, t, self.sensor_params, frozen)
+            obs_snap = apply_sensor_effects_enhanced(
+                state, t, self.sensor_model, frozen,
+                noise_multiplier=self.sensor_params.get('noise_multiplier', 1.0)
+            )
             obs_snap['time'] = t
             observed_history.append(obs_snap)
         
         return true_history, observed_history
+    
+    def get_sensor_diagnostics(self) -> Dict[str, Dict]:
+        """
+        Get health status of all sensors.
+        Useful for agent monitoring and fault detection.
+        """
+        sensors = ['X', 'S_glc', 'P', 'DO', 'pH']
+        return {
+            sensor: self.sensor_model.get_sensor_health(sensor)
+            for sensor in sensors
+        }
+    
+    def recalibrate_sensor(self, sensor: str):
+        """
+        Simulate sensor recalibration event.
+        Resets drift and fouling for specified sensor.
+        """
+        self.sensor_model.reset_sensor(sensor)

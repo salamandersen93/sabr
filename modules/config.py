@@ -41,8 +41,13 @@ KINETIC_PARAMS: Dict = {
     "kLa": 10.0,         # 1/h, volumetric mass transfer coefficient (proxy)
     "o2_uptake_coeff": 0.02,  # % DO consumed per (g/L·h) by biomass, proxy for OUR
 
-    # pH acidification
-    "acid_rate": 0.0005, # pH units per (g/L·h), slow metabolic acidification
+    # pH model
+    "acid_prod_coeff": 1e-4,          # mol H+/g/h
+    "acid_from_substrate": 1e-5,      # mol H+/mmol glucose
+    "buffer_capacity": 0.025,    # mol/(L·pH)
+    "base_dose_mol": 2e-4,       # mol per dose
+    "pH_setpoint": 7.2,
+    "pH_deadband": 0.05,
 
     # Temperature / agitation modifiers (multiplicative factors; 1.0 = no change)
     "temp_factor": 1.0,  # multiplies mu_max (can be set by temp shift)
@@ -153,7 +158,10 @@ FAULT_TEMPLATES: Dict = {
         "duration_h": 1.0,
         "death_spike": 0.05,
         "severity": 5
-    }
+    },
+    "standard": {
+        "type": "standard", 
+        "description": "no fault injected."}
 }
 
 # Game / scenario params
