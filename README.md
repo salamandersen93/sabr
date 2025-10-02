@@ -39,9 +39,10 @@ Key Features
 - (Future) agents interact dynamically with user-selected assays and telemetry.
 - (Future) ulti-agent orchestration enables reasoning across monitoring, troubleshooting, and reporting.
 
-Architecture Overview
-
-Fed-Batch Game Engine --> Delta Tables/S3 (Synthetic Runs) --> ML Anomaly Detection (PyTorch/sklearn) --> Multi-Agent Copilot (troubleshooting, monitoring, reporting) --> LLM Summarization --> Frontend
+5. Insightful Report Generation
+- Report synthesis module incorporates AI-generated summaries, fault injection hints, telemetry data, telemetry/anomaly plots into a full report
+- Full overview of run input parameters (kinetics, initial state, simulation parameters)
+- Unique id generation for run identification allows targeted analytics in delta lake
 
 Future Extensions
 - Multi-reactor simulation (batch, perfusion, scale-up).
@@ -50,6 +51,3 @@ Future Extensions
 - Knowledge graph linking parameters → anomalies → product quality.
 - Exportable regulatory-style run reports.
 
-High Level Architecture:
-
-<img width="330" height="602" alt="image" src="https://github.com/user-attachments/assets/8783171d-d276-44e1-9ffd-6142362f436c" />
