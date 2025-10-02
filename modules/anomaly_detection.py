@@ -40,7 +40,7 @@ class MovingWindowDetector:
         
         window = self.windows[signal_name]
         
-        # Need sufficient history
+        # verify sufficient history for window
         if len(window) < self.window_size:
             window.append(value)
             return AnomalyScore(
@@ -49,14 +49,13 @@ class MovingWindowDetector:
                 score=0.0,
                 is_anomaly=False,
                 method='moving_window',
-                context={'window_full': False}
-            )
+                context={'window_full': False})
         
-        # Compute statistics on window
+        # run stats on window
         mean = np.mean(window)
         std = np.std(window)
         
-        # Z-score
+        # z-score
         if std > 0:
             z_score = abs((value - mean) / std)
         else:
@@ -64,7 +63,7 @@ class MovingWindowDetector:
         
         is_anomaly = z_score > self.threshold_sigma
         
-        # Add current value to window
+        # add current value to window
         window.append(value)
         
         return AnomalyScore(
@@ -76,9 +75,7 @@ class MovingWindowDetector:
             context={
                 'mean': mean,
                 'std': std,
-                'threshold': self.threshold_sigma
-            }
-        )
+                'threshold': self.threshold_sigma})
 
 
 class CUSUMDetector:
@@ -124,9 +121,7 @@ class CUSUMDetector:
             context={
                 'cusum_high': self.cusum_high,
                 'cusum_low': self.cusum_low,
-                'threshold': self.h
-            }
-        )
+                'threshold': self.h})
     
     def reset(self):
         """Reset CUSUM counters."""
@@ -179,8 +174,7 @@ class RateOfChangeDetector:
             score=score,
             is_anomaly=is_anomaly,
             method='rate_of_change',
-            context={'rate': rate, 'threshold': self.max_rate}
-        )
+            context={'rate': rate, 'threshold': self.max_rate})
 
 
 class MultiSignalCorrelationDetector:
@@ -231,9 +225,7 @@ class MultiSignalCorrelationDetector:
                         context={
                             'observed_corr': corr,
                             'expected_corr': expected_corr,
-                            'tolerance': tolerance
-                        }
-                    ))
+                            'tolerance': tolerance}))
         
         return results
 

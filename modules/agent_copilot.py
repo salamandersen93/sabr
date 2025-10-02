@@ -33,9 +33,7 @@ class LlamaCrewAgent:
         )
         return response
 
-# ----------------------------------------------------------------------
-# Agent implementations
-# ----------------------------------------------------------------------
+# AGENTIC PROCESSES
 
 class ExplainerAgent:
     def __init__(self, endpoint="databricks-meta-llama-3-3-70b-instruct"):
@@ -49,7 +47,6 @@ class ExplainerAgent:
         return str(df)
 
     def explain(self, telemetry_snapshot, anomalies):
-        # Handle both dict and list types for telemetry_snapshot
         if isinstance(telemetry_snapshot, dict):
             telemetry_serialized = {k: self._serialize_df(v) for k, v in telemetry_snapshot.items()}
         elif isinstance(telemetry_snapshot, list):
@@ -61,7 +58,7 @@ class ExplainerAgent:
         llama_agent = Agent(
             role="Pharmaceutical Large Molecule Bioreactor Troubleshooting Expert",
             goal="Give a concise, mechanistic explanation of why given conditions and issues might arise in a fed-batch CHO culture.",
-            backstory="You are a bioprocess expert. Analyze the following CHO cellbioreactor conditions and provide possible explanations.Telemetry: {telemetry_serialized} Anomalies: {anomalies_serialized}.",
+            backstory="You are a bioprocess expert. Analyze the following CHO cellbioreactor conditions and provide possible explanations. Categorize the primary root causes of any anomalies or deviations from the expected ideal conditions.",
             llm="databricks/databricks-meta-llama-3-3-70b-instruct" )
 
         llama_runner = LlamaCrewAgent()
@@ -73,11 +70,12 @@ class ExplainerAgent:
             input="You are being given serialized telemetry data from a pharmaceutical bioreactor run. Provide a concise, mechanistic explanation of the run data, any concerning metrics, and your assessment of the cause for any anomalies.",
             run=llama_task_runner,
             description="Bioreactor Troubleshooting.",
-            expected_output="A 3-4 sentence assessment of the bioreactor telemetry data and statistically detected anomalies, including root cause analysis."
-        )
+            expected_output="A 3-4 sentence assessment of the bioreactor telemetry data and statistically detected anomalies, including root cause analysis. Telemetry: {telemetry_serialized} Anomalies: {anomalies_serialized}. Specifically recommend actions and a high level categorization of the root cause.")
+        
         crew = Crew(
-        agents=[llama_agent],
-        tasks=[task])
+            agents=[llama_agent],
+            tasks=[task],
+            verbose=False)
 
         result = crew.kickoff()
         print(result)

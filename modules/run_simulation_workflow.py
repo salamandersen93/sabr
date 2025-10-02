@@ -50,16 +50,14 @@ class BioPilotWorkflow:
         self.enable_agent_execution = enable_agent_execution
         if enable_agent:
             print('agentic analysis enabled.')
-            self.agent = LlamaRootCauseAgent()
             self.explainer = ExplainerAgent()
         else:
             self.agent = None
             self.explainer = None
 
         self.all_anomaly_scores = []
-        self.agent_budget = {'assays': 6}
         self.last_agent_check = 0.0
-        self.agent_check_interval = 5.0  # Check every 5 hours
+        self.agent_check_interval = 5.0 # check in 5 hour intervals by default
 
     def inject_scenario_faults(self, scenario: str = "overfeed"):
         if scenario in self.simulation.fault_manager.fault_templates:
@@ -73,15 +71,12 @@ class BioPilotWorkflow:
                 fault_type=scenario,
                 start_time=start_time,
                 duration=fault_info.get('duration_h', 2.0),
-                parameters=fault_info
-            )
+                parameters=fault_info)
 
     def run_with_monitoring(self, base_feed_rate: float = 0.1, save_to_lake: bool = True) -> Dict:
         start_timestamp = datetime.now()
-        print(f"\n{'='*60}")
         print(f"BioPilot Simulation Run: {self.run_id}")
         print(f"Agent Execution: {'ENABLED' if self.enable_agent_execution else 'DISABLED'}")
-        print(f"{'='*60}\n")
 
         dt = self.config['SIMULATION_PARAMS']['dt']
         duration = self.config['SIMULATION_PARAMS']['total_time']
@@ -101,13 +96,10 @@ class BioPilotWorkflow:
                 'pH': row['pH'],
                 'time': time}
             
-        print('TELEMETRY:', telemetry)
-
-        # Anomaly detection pass
+        # anomaly detection process
         if self.enable_anomaly_detection:
             print("\nRunning anomaly detection...")
             anomaly_results = self.anomaly_detector.detect_step(telemetry, time)
-            print('ANOMALY RESULTS:', anomaly_results)
             self.all_anomaly_scores.extend(anomaly_results)
             
             anomaly_summary = self.anomaly_detector.get_anomaly_summary(
@@ -116,15 +108,15 @@ class BioPilotWorkflow:
             print(f"Anomaly rate: {anomaly_summary['anomaly_rate']:.2%}")
         
         print(f"\nSimulation complete!")
-        print('type:', type(self.enable_anomaly_detection))
+        print('anomaly scores:', self.all_anomaly_scores)
+
         if self.enable_anomaly_detection:
             print('getting anomaly summary...')
             anomaly_summary = self.anomaly_detector.get_anomaly_summary(self.all_anomaly_scores)
             print(f"Anomalies detected: {anomaly_summary['anomalies_detected']}")
 
         # explain agent troubleshooting details
-        agent_explain = self.explainer.explain(true_history, 
-                                                self.all_anomaly_scores)
+        agent_explain = self.explainer.explain(true_history, self.all_anomaly_scores)
 
         # save to data lake
         if save_to_lake:
@@ -144,8 +136,7 @@ class BioPilotWorkflow:
                 success=final_titer > 5.0,
                 score=final_titer * 10.0,
                 start_time=start_timestamp,
-                end_time=datetime.now()
-            )
+                end_time=datetime.now())
 
         summary = {
             'run_id': self.run_id,
@@ -154,15 +145,12 @@ class BioPilotWorkflow:
             'anomaly_scores': self.all_anomaly_scores,
             'final_titer': df_true['P'].iloc[-1],
             'final_biomass': df_true['X'].iloc[-1],
-            'num_anomalies': len([a for a in self.all_anomaly_scores if a.is_anomaly])
-        }
+            'num_anomalies': len([a for a in self.all_anomaly_scores if a.is_anomaly])}
 
         print(f"\nRun Complete! Final Titer: {summary['final_titer']:.2f}")
         return summary
 
-# ---------------------------
-# Visualization
-# ---------------------------
+# visualize results
 def visualize_run(results: Dict, save_path: Optional[str] = None):
     df_true = results['true_history']
     df_obs = results['observed_history']

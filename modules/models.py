@@ -25,12 +25,10 @@ def compute_mu(S_glc: float, kinetics: Dict) -> float:
     Compute specific growth rate using Monod model with glucose.
     mu = mu_max * (S / (Ks + S)) * temp_factor * agitation_factor
     """
-
     mu_max = kinetics.get("mu_max", 0.04)
     Ks = kinetics.get("Ks_glc", 0.5)
     temp_factor = kinetics.get("temp_factor", 1.0)
     agitation_factor = kinetics.get("agitation_factor", 1.0)
-
     # Avoid division by zero
     mu = mu_max * (S_glc / (Ks + S_glc)) if (Ks + S_glc) > 0 else 0.0
     mu *= temp_factor * agitation_factor
@@ -40,7 +38,6 @@ def update_biomass(X: float, mu: float, kinetics: Dict, dt: float) -> float:
     """
     dX/dt = (mu - kd) * X
     """
-
     kd = kinetics.get("kd", 0.005)
     dX = (mu * X - kd * X) * dt
     X_new = X + dX
@@ -52,7 +49,6 @@ def update_substrate(X: float, S_glc: float, mu: float, feed_g_L_h: float, kinet
     dS/dt = - (mu * X) / Y_xs + feed_rate (g/L/h)
     feed_g_L_h is the mass input normalized per L per hour.
     """
-
     Y_xs = kinetics.get("Y_xs", 0.5)
     dS = ( - (mu * X) / Y_xs + feed_g_L_h ) * dt
     S_new = S_glc + dS
@@ -71,7 +67,6 @@ def update_product(X: float, P: float, mu: float, kinetics: Dict, dt: float) -> 
     - beta: basal (non-growth-associated) specific productivity (g/(g·h))
     - Typical values: alpha ~ 0.5-2.0, beta ~ 0.01-0.05
     """
-
     # TODO: refine these default values based on literature
     alpha = kinetics.get("alpha", 1.0) 
     beta = kinetics.get("beta", 0.02)
@@ -108,15 +103,13 @@ def update_DO(X: float, DO: float, kinetics: Dict, dt: float) -> float:
     
     # DO saturation is 100% in our normalized units
     DO_sat = 100.0
-    
     # Oxygen uptake rate (OUR) in %DO/h
     OUR = qO2 * X
-    
-    # Mass balance: oxygen transfer in - oxygen consumed
+    # mass balance: oxygen transfer in - oxygen consumed
     dDO = (kLa * (DO_sat - DO) - OUR) * dt
     DO_new = DO + dDO
     
-    # Physical constraint: DO must be between 0-100%
+    # clamp between 0 and 100
     return _clamp(DO_new, lo=0.0, hi=100.0)
 
 def update_pH(pH: float, X: float, kinetics: Dict, dt: float) -> float:
@@ -129,13 +122,12 @@ def update_pH(pH: float, X: float, kinetics: Dict, dt: float) -> float:
     acid_rate = kinetics.get("acid_rate", 0.0005)
     dpH = - acid_rate * X * dt
     pH_new = pH + dpH
-    # Clamp to a plausible range for CHO culture
+    # clamp to a plausible range for CHO culture
     return _clamp(pH_new, lo=6.5, hi=7.6)
 
 def add_noise(signal: float, sigma: float = 0.001) -> float:
     """Add Gaussian noise to a signal (for observed values)."""
     return signal + np.random.normal(0, sigma)
-
 
 class FaultManager:
     """FAULT INJECTION SYSTEM.
@@ -216,8 +208,8 @@ def apply_sensor_effects(state: Dict, t: float, sensor_params: Dict,
     """
     obs_state = state.copy()
     
-    sigma = sensor_params.get('sensor_noise_sigma', 0.001)
-    drift_rate = sensor_params.get('sensor_drift_rate', 0.0005)
+    sigma = sensor_params.get('sensor_noise_sigma', 0.0001)
+    drift_rate = sensor_params.get('sensor_drift_rate', 0.00005)
     
     sensors = ['X', 'S_glc', 'P', 'DO', 'pH']
     frozen = frozen_sensors or []
@@ -228,14 +220,15 @@ def apply_sensor_effects(state: Dict, t: float, sensor_params: Dict,
                 # Sensor frozen - don't update (would need previous value stored)
                 continue
             else:
-                # Apply noise
+                # Apply noise & drift
+                # TODO: apply variable levels of noise and drift based on sensor type and measurement
+                # for example, pH drift/noise will be significantly different than DO/X
                 obs_state[sensor] = add_noise(state[sensor], sigma)
-                # Apply drift
                 obs_state[sensor] += drift_rate * t
     
     return obs_state
 
-# run batch simulation models
+# main class to run simulations
 class BioreactorSimulation:
     """Complete simulation runner with fault injection."""
     
