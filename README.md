@@ -44,10 +44,20 @@ Key Features
 - Full overview of run input parameters (kinetics, initial state, simulation parameters)
 - Unique id generation for run identification allows targeted analytics in delta lake
 
-Future Extensions
+Future Extensions:
 - Multi-reactor simulation (batch, perfusion, scale-up).
 - Reinforcement learning agents for optimized feed strategies.
 - Integration of enzyme kinetics, thermodynamics, or metabolic byproducts.
 - Knowledge graph linking parameters → anomalies → product quality.
 - Exportable regulatory-style run reports.
 
+Modules are all run from the main notebook (MVP only). Modules include:
+- agent_copilot.py: CrewAI-orchestrated Databricks LLaMA agents troubleshoot and summarize bioreactor telemetry and anomaly data
+- anomaly_detection.py: Classical algorithms detect and flag anomalies in telemetry data
+- config.py: Contains core information for initiating run (starting input parameters, default kinetics), fault injection templates, and sensor details
+- data_lake.py: Logic for creating delta lake tables and writing outputs to delta tables for scalable advanced analytics
+- models.py: Contains model definitions for bioreactor kinetics and deterministic functions for updating bioreactor conditions over time to generate telemetry data.
+- parameter_sweep.py: Standalone script to run "parameter sweeps", sets of simulations for multiple incrementing values for a given parameter
+- reporting.py: Generates a PDF report for each scenario triggered in the notebook and generates a download link (see examples under /reports/)
+- run_simulation_workflow.py: Contains core orchestration logic for executing the simulation
+- sensor_noise.py: Custom models for generating sensor noise depending on sensor type
