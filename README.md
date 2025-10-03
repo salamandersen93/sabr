@@ -1,4 +1,4 @@
-# Synthetic Twin - BioPilot
+# Synthetic Agentic BioReactor (SABR)
 
 > An interactive, AI-driven bioprocess simulation and analytics platform for synthetic bioreactor modeling, anomaly detection, and agent-assisted troubleshooting.
 
@@ -6,7 +6,7 @@
 
 ## Overview
 
-**Synthetic Twin - BioPilot** is a comprehensive platform that combines physics-based bioreactor simulation with intelligent fault detection and AI-powered troubleshooting. The system uses a simple yet effective modeling architecture for core bioreactor parameters and features a custom fault injection engine to create realistic, dynamic bioreactor runs.
+**SABR** is a comprehensive platform that combines physics-based bioreactor simulation with intelligent fault detection and AI-powered troubleshooting. The system uses a simple yet effective modeling architecture for core bioreactor parameters and features a custom fault injection engine to create realistic, dynamic bioreactor runs.
 
 ---
 
@@ -52,7 +52,7 @@
 
 #### **1. Fed-Batch Game Engine** (Synthetic Bioreactor Twin)
 
-The simulation heart of BioPilot, modeling realistic CHO cell fed-batch bioreactor dynamics.
+The simulation heart of SABR, modeling realistic CHO cell fed-batch bioreactor dynamics.
 
 **Simulated Parameters:**
 - **Biomass (X)**: Cell density over time
@@ -243,7 +243,7 @@ All modules are orchestrated through the main Jupyter notebook (MVP implementati
 
 ## Example Reports
 
-See the `/reports/` directory for example PDF reports demonstrating the full capabilities of BioPilot's reporting system.
+See the `/reports/` directory for example PDF reports demonstrating the full capabilities of SABR's reporting system.
 
 ---
 
