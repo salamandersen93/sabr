@@ -11,7 +11,7 @@ from .config import (SIMULATION_PARAMS, INITIAL_STATE, KINETIC_PARAMS,
 from .models import BioreactorSimulation
 from .anomaly_detection import (AnomalyDetectionEngine, create_default_bioreactor_config)
 from .agent_copilot import (ExplainerAgent)
-from .data_lake_sqlite import BioreactorDataLakeSQLite  # <- new import
+from .data_lake_sqlite import BioreactorDataLakeSQLite
 
 class SABRWorkflow:
     def __init__(self, config_dict: Dict, enable_agent: bool = True,
