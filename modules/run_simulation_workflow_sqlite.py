@@ -1,3 +1,10 @@
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent  # repo root
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+    
 # run_simulation_workflow_sqlite.py
 import numpy as np
 import pandas as pd
@@ -6,12 +13,12 @@ import uuid
 from typing import Dict, List, Optional
 import matplotlib.pyplot as plt
 
-from config import (SIMULATION_PARAMS, INITIAL_STATE, KINETIC_PARAMS, 
+from modules.config import (SIMULATION_PARAMS, INITIAL_STATE, KINETIC_PARAMS, 
                    REACTOR_PARAMS, SENSOR_PARAMS, FAULT_TEMPLATES)
-from models import BioreactorSimulation
-from anomaly_detection import (AnomalyDetectionEngine, create_default_bioreactor_config)
-from agent_copilot import (ExplainerAgent)
-from data_lake_sqlite import BioreactorDataLakeSQLite
+from modules.models import BioreactorSimulation
+from modules.anomaly_detection import (AnomalyDetectionEngine, create_default_bioreactor_config)
+from modules.agent_copilot import (ExplainerAgent)
+from modules.data_lake_sqlite import BioreactorDataLakeSQLite
 
 class SABRWorkflow:
     def __init__(self, config_dict: Dict, enable_agent: bool = True,

@@ -1,20 +1,47 @@
-# /app/sabr_app.py
+import os
 import sys
 from pathlib import Path
 
-#sys.path.append(str(Path(__file__).resolve().parent.parent))
+BASE_DIR = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
+REPO_ROOT = BASE_DIR.parents[1]  # adjust if your structure is deeper
+print(f"Detected repo root: {REPO_ROOT}")
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+MODULES_DIR = REPO_ROOT / "app" / "modules"
+if str(MODULES_DIR) not in sys.path:
+    sys.path.insert(0, str(MODULES_DIR))
+
+print(f"Modules path added to sys.path: {MODULES_DIR}")
+from modules.run_simulation_workflow_sqlite import SABRWorkflow
+from modules.config import (
+    SIMULATION_PARAMS,
+    INITIAL_STATE,
+    KINETIC_PARAMS,
+    REACTOR_PARAMS,
+    SENSOR_PARAMS,
+    FAULT_TEMPLATES,)
 
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-from modules.run_simulation_workflow_sqlite import SABRWorkflow
-from modules.config import SIMULATION_PARAMS, INITIAL_STATE, KINETIC_PARAMS, REACTOR_PARAMS, SENSOR_PARAMS, FAULT_TEMPLATES
 from databricks.sdk import WorkspaceClient
 import streamlit as st
 
+def get_secret(key):
+    try:
+        # Try Databricks secrets
+        return dbutils.secrets.get(scope="your-scope-name", key=key)
+    except Exception:
+        # Fallback to Streamlit secrets or environment variable
+        try:
+            import streamlit as st
+            return st.secrets[key]
+        except Exception:
+            return os.environ.get(key)
+
 client = WorkspaceClient(
-    host=st.secrets["host"],
-    token=st.secrets["token"])
+    host=get_secret("host"),
+    token=get_secret("token"))
 
 st.set_page_config(page_title="SABR: Synthetic Agentic Bioreactor", layout="wide")
 st.title("SABR: Synthetic Agentic Bioreactor Simulation")
