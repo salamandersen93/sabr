@@ -17,9 +17,22 @@ from crewai import Agent, Task, Crew
 import mlflow.deployments
 from databricks.sdk import WorkspaceClient
 import streamlit as st
+import os
+
+def get_secret(key):
+    try:
+        # Try Databricks secrets
+        return dbutils.secrets.get(scope="your-scope-name", key=key)
+    except Exception:
+        # Fallback to Streamlit secrets or environment variable
+        try:
+            import streamlit as st
+            return st.secrets[key]
+        except Exception:
+            return os.environ.get(key)
 
 class LlamaCrewAgent:
-    def __init__(self, endpoint="databricks-meta-llama-3-3-70b-instruct"):
+    def __init__(self, endpoint="databricks/databricks-meta-llama-3-3-70b-instruct"):
         self.client = mlflow.deployments.get_deploy_client("databricks")
         self.endpoint = endpoint
 
@@ -37,12 +50,12 @@ class LlamaCrewAgent:
 
 # AGENTIC PROCESSES
 class ExplainerAgent:
-    def __init__(self, endpoint="databricks-meta-llama-3-3-70b-instruct"):
+    def __init__(self, endpoint="databricks/databricks-meta-llama-3-3-70b-instruct"):
         # Inject Streamlit secrets into environment variables for MLflow
 
         self.client = WorkspaceClient(
-            host=st.secrets["host"],
-            token=st.secrets["token"])
+            host=get_secret("host"),
+            token=get_secret("token"))
         # Create MLflow deploy client (authenticated)
         self.endpoint = endpoint
 
@@ -68,8 +81,7 @@ class ExplainerAgent:
             role="Pharmaceutical Large Molecule Bioreactor Troubleshooting Expert",
             goal="Give a concise, mechanistic explanation of why given conditions and issues might arise in a fed-batch CHO culture.",
             backstory="You are a bioprocess expert. Analyze the following CHO cellbioreactor conditions and provide possible explanations. Categorize the primary root causes of any anomalies or deviations from the expected ideal conditions.",
-            llm=self.endpoint
-        )
+            llm=self.endpoint)
 
         llama_runner = LlamaCrewAgent()
         def llama_task_runner(input):
