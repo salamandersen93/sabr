@@ -1,9 +1,9 @@
 import os
 from datetime import datetime
 import pandas as pd
-from run_simulation_workflow import BioPilotWorkflow
-from reporting import BioreactorPDFReport
-from config import SIMULATION_PARAMS, INITIAL_STATE, KINETIC_PARAMS, REACTOR_PARAMS, SENSOR_PARAMS, FAULT_TEMPLATES
+from .run_simulation_workflow import BioPilotWorkflow
+from .reporting import BioreactorPDFReport
+from .config import SIMULATION_PARAMS, INITIAL_STATE, KINETIC_PARAMS, REACTOR_PARAMS, SENSOR_PARAMS, FAULT_TEMPLATES
 
 # setup
 sweep_values = [0.03, 0.04, 0.05, 0.06]  # mu_max values
