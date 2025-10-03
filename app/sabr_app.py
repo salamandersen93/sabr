@@ -8,7 +8,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from modules.run_simulation_workflow_sqlite import SABRWorkflow
-from modules.config import SIMULATION_PARAMS, INITIAL_STATE, KINETIC_PARAMS, REACTOR_PARAMS, SENSOR_PARAMS
+from modules.config import SIMULATION_PARAMS, INITIAL_STATE, KINETIC_PARAMS, REACTOR_PARAMS, SENSOR_PARAMS, FAULT_TEMPLATES
 
 st.set_page_config(page_title="SABR: Synthetic Agentic Bioreactor", layout="wide")
 st.title("SABR: Synthetic Agentic Bioreactor Simulation")
