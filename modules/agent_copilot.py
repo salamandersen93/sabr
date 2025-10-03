@@ -55,19 +55,25 @@ class ExplainerAgent:
     def _serialize_df(self, df):
         """Convert DataFrame to compact JSON string."""
         if isinstance(df, pd.DataFrame):
-            return df.to_json(orient="records")
+            return df.to_json(orient="split", index=False)
         return str(df)
 
     def explain(self, telemetry_snapshot, anomalies):
-        # Serialize telemetry
-        if isinstance(telemetry_snapshot, dict):
-            telemetry_serialized = {k: self._serialize_df(v) for k, v in telemetry_snapshot.items()}
-        elif isinstance(telemetry_snapshot, list):
-            telemetry_serialized = [self._serialize_df(v) for v in telemetry_snapshot]
-        else:
-            raise TypeError("telemetry_snapshot must be a dict or list")
+        # Convert telemetry list to DataFrame then serialize
+        print('telemetry snapshots:', type(telemetry_snapshot))
+        print('anomalies:', type(anomalies))
+        print('telemetry:', telemetry_snapshot[0])
+        print('anomalies:', anomalies[0])
+        print('telemetry 0 type:', type(telemetry_snapshot[0]))
+        print('anomalies 0 type:', type(anomalies[0]))
+
+        telemetry_df = pd.DataFrame(telemetry_snapshot)
+        telemetry_serialized = self._serialize_df(telemetry_df)
+
+        anomaly_data = [{'time': a.time,'signal': a.signal,'score': a.score,'method': a.method,}
+                        for a in anomalies if a.is_anomaly]
         
-        anomalies_serialized = [self._serialize_df(a) for a in anomalies]
+        anomalies_serialized = self._serialize_df(anomalies_df)
 
         # Define agent - use the endpoint string, LiteLLM will handle it with env vars
         llama_agent = Agent(
@@ -83,18 +89,17 @@ class ExplainerAgent:
             description="Bioreactor Troubleshooting. Analyze the serialized telemetry data from a pharmaceutical bioreactor run. Provide a concise, mechanistic explanation of the run data, any concerning metrics, and your assessment of the cause for any anomalies.\nTelemetry: {telemetry}\nAnomalies: {anomalies}",
             expected_output="A 3-4 sentence assessment of the bioreactor telemetry data and statistically detected anomalies, including root cause analysis. Specifically recommend actions and a high level categorization of the root cause."
         )
-
-        crew = Crew(
-            agents=[llama_agent],
-            tasks=[task],
-            verbose=False
+        task = Task(
+            agent=llama_agent,
+            description="Bioreactor Troubleshooting. Analyze the serialized telemetry data from a pharmaceutical bioreactor run. Provide a concise, mechanistic explanation of the run data, any concerning metrics, and your assessment of the cause for any anomalies.\nTelemetry: {telemetry}\nAnomalies: {anomalies}",
+            expected_output="A 3-4 sentence assessment of the bioreactor telemetry data and statistically detected anomalies, including root cause analysis. Specifically recommend actions and a high level categorization of the root cause."
         )
 
+        crew = Crew(agents=[llama_agent],tasks=[task],verbose=False)
         # Pass data as inputs to the crew
         result = crew.kickoff(inputs={
             "telemetry": telemetry_serialized,
-            "anomalies": anomalies_serialized
-        })
+            "anomalies": anomalies_serialized})
         
         print(result)
         return result
