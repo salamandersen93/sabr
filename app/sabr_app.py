@@ -29,7 +29,8 @@ if run_button:
                 "INITIAL_STATE": INITIAL_STATE,
                 "KINETIC_PARAMS": KINETIC_PARAMS,
                 "REACTOR_PARAMS": REACTOR_PARAMS,
-                "SENSOR_PARAMS": SENSOR_PARAMS
+                "SENSOR_PARAMS": SENSOR_PARAMS,
+                "FAULT_TEMPLATES": FAULT_TEMPLATES
             },
             enable_agent=enable_agent,
             enable_anomaly_detection=enable_anomaly,
