@@ -38,8 +38,8 @@ class ExplainerAgent:
     def __init__(self, endpoint="databricks-meta-llama-3-3-70b-instruct"):
         # Inject Streamlit secrets into environment variables for MLflow
         import streamlit as st
-        os.environ["DATABRICKS_HOST"] = st.secrets["DATABRICKS_HOST"]
-        os.environ["DATABRICKS_TOKEN"] = st.secrets["DATABRICKS_TOKEN"]
+        os.environ["DATABRICKS_HOST"] = st.secrets["host"]
+        os.environ["DATABRICKS_TOKEN"] = st.secrets["token"]
 
         # Create MLflow deploy client (authenticated)
         self.client = mlflow.deployments.get_deploy_client("databricks")
