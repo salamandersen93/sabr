@@ -17,7 +17,7 @@ from agent_copilot import (ExplainerAgent)
 from data_lake import BioreactorDataLake
 
 
-class BioPilotWorkflow:
+class SABRWorkflow:
     def __init__(self, spark, config_dict: Dict, enable_agent: bool = True,
                  enable_anomaly_detection: bool = True, 
                  enable_agent_execution: bool = True):
@@ -105,7 +105,7 @@ class BioPilotWorkflow:
                            verbose: bool = True) -> Dict:
         start_timestamp = datetime.now()
         print(f"\n{'='*60}")
-        print(f"BioPilot Simulation Run: {self.run_id}")
+        print(f"SABR Simulation Run: {self.run_id}")
         print(f"Agent Execution: {'ENABLED' if self.enable_agent_execution else 'DISABLED'}")
         print(f"Anomaly Detection: {'ENABLED' if self.enable_anomaly_detection else 'DISABLED'}")
         print(f"{'='*60}\n")
