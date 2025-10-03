@@ -7,9 +7,15 @@ Deterministic process update functions for the synthetic bioreactor (MVP).
 - Fault injection logic
 - Models are kept simple, documented, and unit-consistent for use in the game engine.
 """
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent  # repo root
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from typing import Dict, Optional, List
-from sensor_noise import AdvancedSensorModel, apply_sensor_effects_enhanced
+from modules.sensor_noise import AdvancedSensorModel, apply_sensor_effects_enhanced
 import numpy as np
 import math
 
