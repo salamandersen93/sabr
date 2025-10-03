@@ -18,3 +18,4 @@ requests>=2.32
 openai>=1.109
 plotly>=5.22
 mlflow>=3.4.0
+streamlit>=1.5.0
