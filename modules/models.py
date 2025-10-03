@@ -9,10 +9,23 @@ Deterministic process update functions for the synthetic bioreactor (MVP).
 """
 import sys
 from pathlib import Path
+import os
 
-ROOT = Path(__file__).resolve().parent.parent  # repo root
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+if "__file__" in globals():
+    BASE_DIR = Path(__file__).resolve().parent
+else:
+    BASE_DIR = Path.cwd()
+REPO_ROOT = BASE_DIR
+for parent in BASE_DIR.parents:
+    if (parent / "requirements.txt").exists() or (parent / ".git").exists():
+        REPO_ROOT = parent
+        break
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+MODULES_DIR = REPO_ROOT / "app" / "modules"
+if str(MODULES_DIR) not in sys.path:
+    sys.path.insert(0, str(MODULES_DIR))
 
 from typing import Dict, Optional, List
 from modules.sensor_noise import AdvancedSensorModel, apply_sensor_effects_enhanced

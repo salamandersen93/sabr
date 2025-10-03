@@ -145,7 +145,7 @@ class BioreactorDataLakeSQLite:
         df.to_sql(self.tables['run_metadata'], self.conn, if_exists='append', index=False)
 
     # ===== Get / Query Methods =====
-    def get_run_telemetry(self, run_id: str, is_observed: bool = True) -> pd.DataFrame:
+    def get_run_telemetry(self, run_id: str, is_observed: bool) -> pd.DataFrame:
         query = f"""
         SELECT * FROM {self.tables['telemetry']}
         WHERE run_id = ? AND is_observed = ?

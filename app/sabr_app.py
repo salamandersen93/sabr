@@ -1,25 +1,27 @@
-import os
 import sys
 from pathlib import Path
+import os
 
-BASE_DIR = Path(__file__).resolve().parent if "__file__" in globals() else Path.cwd()
-REPO_ROOT = BASE_DIR.parents[1]  # adjust if your structure is deeper
-print(f"Detected repo root: {REPO_ROOT}")
+if "__file__" in globals():
+    BASE_DIR = Path(__file__).resolve().parent
+else:
+    BASE_DIR = Path.cwd()
+REPO_ROOT = BASE_DIR
+for parent in BASE_DIR.parents:
+    if (parent / "requirements.txt").exists() or (parent / ".git").exists():
+        REPO_ROOT = parent
+        break
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
+
 MODULES_DIR = REPO_ROOT / "app" / "modules"
 if str(MODULES_DIR) not in sys.path:
     sys.path.insert(0, str(MODULES_DIR))
 
-print(f"Modules path added to sys.path: {MODULES_DIR}")
+# Now safe to import
 from modules.run_simulation_workflow_sqlite import SABRWorkflow
-from modules.config import (
-    SIMULATION_PARAMS,
-    INITIAL_STATE,
-    KINETIC_PARAMS,
-    REACTOR_PARAMS,
-    SENSOR_PARAMS,
-    FAULT_TEMPLATES,)
+from modules.config import (SIMULATION_PARAMS,INITIAL_STATE,KINETIC_PARAMS,
+                            REACTOR_PARAMS,SENSOR_PARAMS,FAULT_TEMPLATES,)
 
 import streamlit as st
 import pandas as pd
@@ -30,7 +32,7 @@ import streamlit as st
 def get_secret(key):
     try:
         # Try Databricks secrets
-        return dbutils.secrets.get(scope="your-scope-name", key=key)
+        return dbutils.secrets.get(scope="sabr", key=key)
     except Exception:
         # Fallback to Streamlit secrets or environment variable
         try:
