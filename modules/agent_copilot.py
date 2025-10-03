@@ -15,6 +15,8 @@ import json
 import mlflow
 from crewai import Agent, Task, Crew
 import mlflow.deployments
+from databricks.sdk import WorkspaceClient
+import streamlit as st
 
 class LlamaCrewAgent:
     def __init__(self, endpoint="databricks-meta-llama-3-3-70b-instruct"):
@@ -37,12 +39,11 @@ class LlamaCrewAgent:
 class ExplainerAgent:
     def __init__(self, endpoint="databricks-meta-llama-3-3-70b-instruct"):
         # Inject Streamlit secrets into environment variables for MLflow
-        import streamlit as st
-        os.environ["DATABRICKS_HOST"] = st.secrets["host"]
-        os.environ["DATABRICKS_TOKEN"] = st.secrets["token"]
 
+        self.client = WorkspaceClient(
+            host=st.secrets["host"],
+            token=st.secrets["token"])
         # Create MLflow deploy client (authenticated)
-        self.client = mlflow.deployments.get_deploy_client("databricks")
         self.endpoint = endpoint
 
     def _serialize_df(self, df):
