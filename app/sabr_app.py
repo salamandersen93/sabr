@@ -9,6 +9,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from modules.run_simulation_workflow_sqlite import SABRWorkflow
 from modules.config import SIMULATION_PARAMS, INITIAL_STATE, KINETIC_PARAMS, REACTOR_PARAMS, SENSOR_PARAMS, FAULT_TEMPLATES
+from databricks.sdk import WorkspaceClient
+
+databricks_host = st.secrets["DATABRICKS_HOST"]
+databricks_token = st.secrets["DATABRICKS_TOKEN"]
+
+client = WorkspaceClient(
+    host=databricks_host,
+    token=databricks_token)
 
 st.set_page_config(page_title="SABR: Synthetic Agentic Bioreactor", layout="wide")
 st.title("SABR: Synthetic Agentic Bioreactor Simulation")
