@@ -9,8 +9,8 @@ from typing import Dict
 
 # Simulation control
 SIMULATION_PARAMS: Dict = {
-    "dt": 0.5,             # timestep [h]
-    "total_time": 100.0,   # total simulation time [h]
+    "dt": 4,             # timestep [h]
+    "total_time": 200,   # total simulation time [h]
     "random_seed": 42      # gaussian noise
 }
 

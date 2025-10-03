@@ -21,9 +21,8 @@ from modules.agent_copilot import (ExplainerAgent)
 from modules.data_lake_sqlite import BioreactorDataLakeSQLite
 
 class SABRWorkflow:
-    def __init__(self, config_dict: Dict, enable_agent: bool = True,
-                 enable_anomaly_detection: bool = True, 
-                 enable_agent_execution: bool = True):
+    def __init__(self, config_dict: Dict, host: str, token: str, enable_agent: bool = True,
+                 enable_anomaly_detection: bool = True, enable_agent_execution: bool = True):
 
         self.config = config_dict
         self.run_id = str(uuid.uuid4())[:8]
@@ -41,7 +40,7 @@ class SABRWorkflow:
 
         self.enable_agent = enable_agent
         self.enable_agent_execution = enable_agent_execution
-        self.explainer = ExplainerAgent() if enable_agent else None
+        self.explainer = ExplainerAgent(host=host, token=token) if enable_agent else None
 
         self.all_anomaly_scores = []
         self.last_agent_check = 0.0
@@ -109,7 +108,7 @@ class SABRWorkflow:
 
         agent_explain = None
         if self.enable_agent:
-            agent_explain = self.explainer.explain(true_history, self.all_anomaly_scores)
+            agent_explain = self.explainer.explain(observed_history, self.all_anomaly_scores)
 
         if save_to_lake:
             self.data_lake.save_telemetry(self.run_id, true_history, is_observed=False)
@@ -138,8 +137,7 @@ class SABRWorkflow:
             'final_titer': df_true['P'].iloc[-1],
             'final_biomass': df_true['X'].iloc[-1],
             'num_anomalies': len([a for a in self.all_anomaly_scores if a.is_anomaly]),
-            'agent_explain': agent_explain
-        }
+            'agent_explain': agent_explain}
 
         return summary
 

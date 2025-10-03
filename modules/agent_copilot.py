@@ -19,18 +19,6 @@ from databricks.sdk import WorkspaceClient
 import streamlit as st
 import os
 
-def get_secret(key):
-    try:
-        # Try Databricks secrets
-        return dbutils.secrets.get(scope="your-scope-name", key=key)
-    except Exception:
-        # Fallback to Streamlit secrets or environment variable
-        try:
-            import streamlit as st
-            return st.secrets[key]
-        except Exception:
-            return os.environ.get(key)
-
 class LlamaCrewAgent:
     def __init__(self, endpoint="databricks/databricks-meta-llama-3-3-70b-instruct"):
         self.client = mlflow.deployments.get_deploy_client("databricks")
@@ -50,13 +38,18 @@ class LlamaCrewAgent:
 
 # AGENTIC PROCESSES
 class ExplainerAgent:
-    def __init__(self, endpoint="databricks/databricks-meta-llama-3-3-70b-instruct"):
-        # Inject Streamlit secrets into environment variables for MLflow
-
-        self.client = WorkspaceClient(
-            host=get_secret("host"),
-            token=get_secret("token"))
-        # Create MLflow deploy client (authenticated)
+    def __init__(self, host: str, token:str,
+                 endpoint="databricks/databricks-meta-llama-3-3-70b-instruct"):
+        
+        # Set environment variables for LiteLLM/CrewAI to use
+        # This is critical for CrewAI to authenticate with Databricks
+        os.environ["DATABRICKS_HOST"] = host
+        os.environ["DATABRICKS_TOKEN"] = token
+        
+        # Also set these for MLflow
+        os.environ["MLFLOW_TRACKING_URI"] = "databricks"
+        
+        self.client = WorkspaceClient(host=host, token=token)
         self.endpoint = endpoint
 
     def _serialize_df(self, df):
@@ -76,22 +69,18 @@ class ExplainerAgent:
         
         anomalies_serialized = [self._serialize_df(a) for a in anomalies]
 
-        # Define agent
+        # Define agent - use the endpoint string, LiteLLM will handle it with env vars
         llama_agent = Agent(
             role="Pharmaceutical Large Molecule Bioreactor Troubleshooting Expert",
             goal="Give a concise, mechanistic explanation of why given conditions and issues might arise in a fed-batch CHO culture.",
             backstory="You are a bioprocess expert. Analyze the following CHO cellbioreactor conditions and provide possible explanations. Categorize the primary root causes of any anomalies or deviations from the expected ideal conditions.",
-            llm=self.endpoint)
-
-        llama_runner = LlamaCrewAgent()
-        def llama_task_runner(input):
-            return llama_runner(input)
+            llm=self.endpoint,
+            verbose=False # Optional: helps with debugging
+        )
 
         task = Task(
             agent=llama_agent,
-            input=f"You are being given serialized telemetry data from a pharmaceutical bioreactor run. Provide a concise, mechanistic explanation of the run data, any concerning metrics, and your assessment of the cause for any anomalies.\nTelemetry: {telemetry_serialized}\nAnomalies: {anomalies_serialized}",
-            run=llama_task_runner,
-            description="Bioreactor Troubleshooting.",
+            description="Bioreactor Troubleshooting. Analyze the serialized telemetry data from a pharmaceutical bioreactor run. Provide a concise, mechanistic explanation of the run data, any concerning metrics, and your assessment of the cause for any anomalies.\nTelemetry: {telemetry}\nAnomalies: {anomalies}",
             expected_output="A 3-4 sentence assessment of the bioreactor telemetry data and statistically detected anomalies, including root cause analysis. Specifically recommend actions and a high level categorization of the root cause."
         )
 
@@ -101,6 +90,11 @@ class ExplainerAgent:
             verbose=False
         )
 
-        result = crew.kickoff()
+        # Pass data as inputs to the crew
+        result = crew.kickoff(inputs={
+            "telemetry": telemetry_serialized,
+            "anomalies": anomalies_serialized
+        })
+        
         print(result)
         return result
