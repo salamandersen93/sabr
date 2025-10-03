@@ -9,7 +9,7 @@ Deterministic process update functions for the synthetic bioreactor (MVP).
 """
 
 from typing import Dict, Optional, List
-from sensor_noise import AdvancedSensorModel, apply_sensor_effects_enhanced
+from .sensor_noise import AdvancedSensorModel, apply_sensor_effects_enhanced
 import numpy as np
 import math
 
