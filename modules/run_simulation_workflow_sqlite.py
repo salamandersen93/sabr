@@ -142,3 +142,138 @@ class SABRWorkflow:
         }
 
         return summary
+
+def visualize_run(results: Dict, save_path: Optional[str] = None):
+    """Enhanced visualization with anomaly highlighting."""
+    df_true = results['true_history']
+    df_obs = results['observed_history']
+
+    fig, axes = plt.subplots(3, 2, figsize=(16, 12))
+    axes = axes.flatten()
+    signals = ['X', 'S_glc', 'P', 'DO', 'pH']
+    titles = ['Biomass [g/L]', 'Glucose [g/L]', 'Product Titer [g/L]', 
+              'Dissolved Oxygen [%]', 'pH']
+
+    for i, (sig, title) in enumerate(zip(signals, titles)):
+        ax = axes[i]
+        ax.plot(df_true['time'], df_true[sig], label='True', linewidth=2, alpha=0.8)
+        ax.plot(df_obs['time'], df_obs[sig], label='Observed', linestyle='--', alpha=0.6)
+
+        # Highlight anomalies
+        if results['anomaly_scores']:
+            sig_anomalies = [a for a in results['anomaly_scores'] 
+                           if a.signal == sig and a.is_anomaly]
+            
+            anomaly_times = [a.time for a in sig_anomalies]
+            if anomaly_times:
+                # Get observed values at anomaly times
+                anomaly_mask = df_obs['time'].isin(anomaly_times)
+                ax.scatter(df_obs.loc[anomaly_mask, 'time'], 
+                          df_obs.loc[anomaly_mask, sig],
+                          color='red', marker='x', s=100, 
+                          label=f'Anomalies ({len(anomaly_times)})', 
+                          zorder=5)
+
+        ax.set_title(title, fontsize=12, fontweight='bold')
+        ax.set_xlabel('Time (h)')
+        ax.legend()
+        ax.grid(alpha=0.3)
+
+    # Enhanced summary panel
+    axes[-1].axis('off')
+    total_anomalies = results['num_anomalies']
+    anomaly_by_signal = {}
+    for a in results['anomaly_scores']:
+        if a.is_anomaly:
+            anomaly_by_signal[a.signal] = anomaly_by_signal.get(a.signal, 0) + 1
+    
+    summary_text = (
+        f"Run ID: {results['run_id']}\n\n"
+        f"Final Metrics:\n"
+        f"  Titer: {results['final_titer']:.2f} g/L\n"
+        f"  Biomass: {results['final_biomass']:.2f} g/L\n\n"
+        f"Anomalies: {total_anomalies}\n"
+    )
+    
+    if anomaly_by_signal:
+        summary_text += "By Signal:\n"
+        for sig, count in sorted(anomaly_by_signal.items()):
+            summary_text += f"  {sig}: {count}\n"
+    
+    axes[-1].text(0.1, 0.5, summary_text, fontsize=10, family='monospace', 
+                  va='center', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
+
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.show()
+    return fig
+
+
+# DIAGNOSTIC HELPER
+def diagnose_anomaly_detection(results: Dict):
+    """
+    Print detailed diagnostics about why anomalies were/weren't detected.
+    """
+    print("\n" + "="*60)
+    print("ANOMALY DETECTION DIAGNOSTICS")
+    print("="*60)
+    
+    df_obs = results['observed_history']
+    
+    # Check data ranges
+    print("\nData Ranges (Observed):")
+    for sig in ['X', 'S_glc', 'P', 'DO', 'pH']:
+        print(f"  {sig}: [{df_obs[sig].min():.3f}, {df_obs[sig].max():.3f}]")
+    
+    # Check rates of change
+    print("\nMax Rates of Change:")
+    for sig in ['X', 'S_glc', 'P', 'DO', 'pH']:
+        diff = df_obs[sig].diff().abs()
+        dt = df_obs['time'].diff()
+        rates = (diff / dt).dropna()
+        if len(rates) > 0:
+            print(f"  {sig}: {rates.max():.3f} units/h")
+    
+    # Anomaly breakdown
+    if results['anomaly_scores']:
+        print(f"\nTotal Anomaly Checks: {len(results['anomaly_scores'])}")
+        print(f"Anomalies Detected: {results['num_anomalies']}")
+        
+        methods = {}
+        signals = {}
+        for a in results['anomaly_scores']:
+            methods[a.method] = methods.get(a.method, 0) + (1 if a.is_anomaly else 0)
+            signals[a.signal] = signals.get(a.signal, 0) + (1 if a.is_anomaly else 0)
+        
+        print("\nDetections by Method:")
+        for method, count in methods.items():
+            print(f"  {method}: {count}")
+        
+        print("\nDetections by Signal:")
+        for signal, count in sorted(signals.items()):
+            if count > 0:
+                print(f"  {signal}: {count}")
+    
+    print("="*60 + "\n")
+
+
+# UNIT CONSISTENCY CHECK
+def verify_units_consistency():
+    """
+    Helper to verify units are consistent across the codebase.
+    Call this during initialization to catch unit mismatches.
+    """
+    print("\nUnit Consistency Check:")
+    print("  X (Biomass): g/L")
+    print("  S_glc (Glucose): g/L")
+    print("  P (Product): g/L  ⚠️  NOTE: NOT mg/mL!")
+    print("  DO (Dissolved O2): %")
+    print("  pH: pH units")
+    print("\nTypical ranges:")
+    print("  X: 0-50 g/L (CHO culture)")
+    print("  S_glc: 0-20 g/L")
+    print("  P: 0-10 g/L (1-10 g/L typical for mAb)")
+    print("  DO: 0-100%")
+    print("  pH: 6.5-7.6")
+    print()
