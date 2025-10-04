@@ -68,8 +68,10 @@ client = WorkspaceClient(
 st.set_page_config(page_title="SABR: Synthetic Agentic BioReactor", layout="wide")
 st.title("SABR: Synthetic Agentic BioReactor Simulation")
 st.markdown("""
-**SABR** simulates a fed-batch CHO bioreactor with realistic process dynamics and fault scenarios for pharmaceutical bioprocess training. Configure parameters in the sidebar, select a fault type, and run the simulation to generate telemetry with automated anomaly detection and AI-driven root cause analysis. A downloadable pdf report is generated for each run.
-""")
+<p style='font-size: 20px; color: #BFA046; line-height: 1.6;'>
+<strong>SABR</strong> simulates a fed-batch CHO bioreactor with realistic process dynamics and fault scenarios for pharmaceutical bioprocess training. Configure parameters in the sidebar, select a fault type, and run the simulation to generate telemetry with automated anomaly detection and AI-driven root cause analysis. A downloadable pdf report is generated for each run.
+</p>
+""", unsafe_allow_html=True)
 
 if 'results' not in st.session_state:
     st.session_state.results = None
