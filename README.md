@@ -2,6 +2,8 @@
 
 > An interactive, AI-driven bioprocess simulation and analytics platform for synthetic bioreactor modeling, anomaly detection, and agent-assisted troubleshooting.
 
+**Try it here:** https://sabr-app.streamlit.app/
+
 ---
 
 ## Overview
