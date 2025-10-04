@@ -169,10 +169,10 @@ def visualize_run(results: Dict, save_path: Optional[str] = None):
                 # Get observed values at anomaly times
                 anomaly_mask = df_obs['time'].isin(anomaly_times)
                 ax.scatter(df_obs.loc[anomaly_mask, 'time'], 
-                          df_obs.loc[anomaly_mask, sig],
-                          color='red', marker='x', s=100, 
-                          label=f'Anomalies ({len(anomaly_times)})', 
-                          zorder=5)
+                    df_obs.loc[anomaly_mask, sig],
+                    color='#8B6914', marker='x', s=50, 
+                    label=f'Anomalies ({len(anomaly_times)})', 
+                    zorder=5)
 
         ax.set_title(title, fontsize=12, fontweight='bold')
         ax.set_xlabel('Time (h)')
