@@ -124,7 +124,8 @@ if run_button:
 
     # ---- Report generation ---
     reporter = BioreactorPDFReport()
-    timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_name = f"{selected_fault}_{run_timestamp}"
     output_folder = f"/tmp/sabr_runs_{timestamp_str}"
     os.makedirs(output_folder, exist_ok=True)
 
