@@ -42,8 +42,9 @@ def get_secret(key):
         try:
             import streamlit as st
             return st.secrets['databricks'][key]
-        except Exception:
-            return os.environ.get(key)
+        except Exception as e:
+            print('unable to find streamlit secrets with error:', e)
+            raise
 
 client = WorkspaceClient(
     host=get_secret("host"),
