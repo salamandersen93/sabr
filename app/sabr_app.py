@@ -46,9 +46,12 @@ def get_secret(key):
             print('unable to find streamlit secrets with error:', e)
             raise
 
+host = get_secret("host")
+token = get_secret("token")
+
 client = WorkspaceClient(
-    host=get_secret("host"),
-    token=get_secret("token"))
+    host=host,
+    token=token)
 
 st.set_page_config(page_title="SABR: Synthetic Agentic BioReactor", layout="wide")
 st.title("SABR: Synthetic Agentic BioReactor Simulation")
