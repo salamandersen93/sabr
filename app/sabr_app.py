@@ -201,9 +201,9 @@ if st.session_state.results is not None:
                 if anomaly_times:
                     anomaly_mask = df_obs['time'].isin(anomaly_times)
                     ax.scatter(df_obs.loc[anomaly_mask, 'time'], 
-                            df_obs.loc[anomaly_mask, sig],
-                            color='red', marker='x', s=100,
-                            label=f'Anomalies ({len(anomaly_times)})')
+                        df_obs.loc[anomaly_mask, sig],
+                        color='#8B6914', marker='x', s=50, 
+                        label=f'Anomalies ({len(anomaly_times)})')
 
             ax.set_title(title)
             ax.set_xlabel('Time [h]')
