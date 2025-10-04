@@ -41,14 +41,10 @@ class ExplainerAgent:
     def __init__(self, host: str, token:str,
                  endpoint="databricks/databricks-meta-llama-3-3-70b-instruct"):
         
-        # Set environment variables for LiteLLM/CrewAI to use
-        # This is critical for CrewAI to authenticate with Databricks
         os.environ["DATABRICKS_HOST"] = host
         os.environ["DATABRICKS_TOKEN"] = token
-        
-        # Also set these for MLflow
         os.environ["MLFLOW_TRACKING_URI"] = "databricks"
-        
+        os.environ["DATABRICKS_API_KEY"] = token
         self.client = WorkspaceClient(host=host, token=token)
         self.endpoint = endpoint
 
