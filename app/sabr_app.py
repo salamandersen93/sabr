@@ -58,6 +58,33 @@ st.title("SABR: Synthetic Agentic BioReactor Simulation")
 
 # --- Sidebar parameters ---
 st.sidebar.header("Simulation Settings")
+
+# Fault selection
+fault_options = list(FAULT_TEMPLATES.keys())
+selected_fault = st.sidebar.selectbox("Fault Type", options=fault_options, index=0)
+
+# Simulation parameters
+st.sidebar.subheader("Simulation Parameters")
+dt = st.sidebar.number_input("Time Step (dt) [h]", value=1.0, min_value=0.1, max_value=10.0, step=0.1)
+total_time = st.sidebar.number_input("Total Time [h]", value=240, min_value=10, max_value=500, step=10)
+
+# Initial state
+st.sidebar.subheader("Initial State")
+init_X = st.sidebar.number_input("Initial Biomass (X) [g/L]", value=0.1, min_value=0.01, max_value=5.0, step=0.01, format="%.3f")
+init_S_glc = st.sidebar.number_input("Initial Glucose [g/L]", value=20.0, min_value=0.0, max_value=100.0, step=1.0)
+init_pH = st.sidebar.number_input("Initial pH", value=7.20, min_value=6.0, max_value=8.0, step=0.01)
+
+# Kinetic parameters (expandable)
+with st.sidebar.expander("Kinetic Parameters"):
+    mu_max = st.number_input("Max Growth Rate (mu_max) [1/h]", value=0.04, min_value=0.001, max_value=0.2, step=0.001, format="%.4f")
+    Ks_glc = st.number_input("Glucose Half-Sat (Ks_glc) [g/L]", value=0.5, min_value=0.1, max_value=5.0, step=0.1)
+    kd = st.number_input("Death Rate (kd) [1/h]", value=0.005, min_value=0.0, max_value=0.1, step=0.001, format="%.4f")
+
+# Reactor parameters
+with st.sidebar.expander("Reactor Parameters"):
+    V0 = st.number_input("Initial Volume [L]", value=2.0, min_value=0.5, max_value=10.0, step=0.1)
+    feed_start_h = st.number_input("Feed Start Time [h]", value=24.0, min_value=0.0, max_value=100.0, step=1.0)
+
 base_feed_rate = st.sidebar.slider("Base Feed Rate [g/L/h]", min_value=0.01, max_value=1.0, value=0.1, step=0.01)
 enable_anomaly = st.sidebar.checkbox("Enable Anomaly Detection", value=True)
 enable_agent = st.sidebar.checkbox("Enable Agentic Analysis", value=True)
@@ -65,23 +92,25 @@ run_button = st.sidebar.button("Run Simulation")
 
 # --- Run simulation ---
 if run_button:
+    # Build config from UI inputs
+    custom_config = {
+        "SIMULATION_PARAMS": {**SIMULATION_PARAMS, "dt": dt, "total_time": int(total_time)},
+        "INITIAL_STATE": {**INITIAL_STATE, "X": init_X, "S_glc": init_S_glc, "pH": init_pH},
+        "KINETIC_PARAMS": {**KINETIC_PARAMS, "mu_max": mu_max, "Ks_glc": Ks_glc, "kd": kd},
+        "REACTOR_PARAMS": {**REACTOR_PARAMS, "V0": V0, "feed_start_h": feed_start_h},
+        "SENSOR_PARAMS": SENSOR_PARAMS,
+        "FAULT_TEMPLATES": {selected_fault: FAULT_TEMPLATES[selected_fault]}
+    }
+    
     with st.spinner("Running SABR simulation..."):
         workflow = SABRWorkflow(
-            config_dict={
-                "SIMULATION_PARAMS": SIMULATION_PARAMS,
-                "INITIAL_STATE": INITIAL_STATE,
-                "KINETIC_PARAMS": KINETIC_PARAMS,
-                "REACTOR_PARAMS": REACTOR_PARAMS,
-                "SENSOR_PARAMS": SENSOR_PARAMS,
-                "FAULT_TEMPLATES": FAULT_TEMPLATES
-            },
+            config_dict=custom_config,
             enable_agent=enable_agent,
             enable_anomaly_detection=enable_anomaly,
             enable_agent_execution=enable_agent,
             host=host,
             token=token
         )
-
         results = workflow.run_with_monitoring(base_feed_rate=base_feed_rate)
 
     st.success(f"Simulation complete! Run ID: {results['run_id']}")
@@ -90,6 +119,19 @@ if run_button:
     if enable_agent and results['agent_explain']:
         st.subheader("Agent Explanation / Root Cause Analysis")
         st.text(results['agent_explain'])
+
+    pdf_file = reporter.generate_summary_pdf(
+        results=results,
+        telemetry_df=pd.DataFrame(results['observed_history']),
+        ai_summary=str(results['agent_explain']),
+        faults=[FAULT_TEMPLATES[scenario]],
+        param_config=config,
+        figures=[fig]
+    )
+    pdf_path = os.path.join(output_folder, f"{run_name}_report.pdf")
+    shutil.move(pdf_file, pdf_path)
+    print(f"PDF report saved to {pdf_path}")
+    create_download_link(pdf_path)
 
     # --- Telemetry visualization ---
     st.subheader("Telemetry Overview")
@@ -135,4 +177,4 @@ if run_button:
         "Total Anomalies": results['num_anomalies']
     })
 
-    st.success("Simulation complete ✅")
+    st.success("Simulation complete")
