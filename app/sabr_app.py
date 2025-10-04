@@ -50,8 +50,8 @@ client = WorkspaceClient(
     host=get_secret("host"),
     token=get_secret("token"))
 
-st.set_page_config(page_title="SABR: Synthetic Agentic Bioreactor", layout="wide")
-st.title("SABR: Synthetic Agentic Bioreactor Simulation")
+st.set_page_config(page_title="SABR: Synthetic Agentic BioReactor", layout="wide")
+st.title("SABR: Synthetic Agentic BioReactor Simulation")
 
 # --- Sidebar parameters ---
 st.sidebar.header("Simulation Settings")
@@ -74,7 +74,9 @@ if run_button:
             },
             enable_agent=enable_agent,
             enable_anomaly_detection=enable_anomaly,
-            enable_agent_execution=enable_agent
+            enable_agent_execution=enable_agent,
+            host=host,
+            token=token
         )
 
         results = workflow.run_with_monitoring(base_feed_rate=base_feed_rate)
