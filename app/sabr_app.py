@@ -136,82 +136,82 @@ if run_button:
     st.session_state.custom_config = custom_config
     st.session_state.selected_fault = selected_fault
 
-    if st.session_state.results is not None:
-        results = st.session_state.results
-        custom_config = st.session_state.custom_config
-        selected_fault = st.session_state.selected_fault
-        
-        st.success(f"Simulation complete! Run ID: {results['run_id']}")
+if st.session_state.results is not None:
+    results = st.session_state.results
+    custom_config = st.session_state.custom_config
+    selected_fault = st.session_state.selected_fault
+    
+    st.success(f"Simulation complete! Run ID: {results['run_id']}")
 
-        # --- Agent explanation ---
-        if enable_agent and results['agent_explain']:
-            st.subheader("Agent Explanation / Root Cause Analysis")
-            st.text(results['agent_explain'])
+    # --- Agent explanation ---
+    if enable_agent and results['agent_explain']:
+        st.subheader("Agent Explanation / Root Cause Analysis")
+        st.text(results['agent_explain'])
 
-        # ---- Report generation ---
-        reporter = BioreactorPDFReport()
-        run_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        run_name = f"{selected_fault}_{run_timestamp}"
+    # ---- Report generation ---
+    reporter = BioreactorPDFReport()
+    run_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_name = f"{selected_fault}_{run_timestamp}"
 
-        pdf_file = reporter.generate_summary_pdf(
-            results=results,
-            telemetry_df=pd.DataFrame(results['observed_history']),
-            ai_summary=str(results['agent_explain']),
-            faults=[FAULT_TEMPLATES[selected_fault]],
-            param_config=custom_config,
-            figures=[visualize_run(results)]
+    pdf_file = reporter.generate_summary_pdf(
+        results=results,
+        telemetry_df=pd.DataFrame(results['observed_history']),
+        ai_summary=str(results['agent_explain']),
+        faults=[FAULT_TEMPLATES[selected_fault]],
+        param_config=custom_config,
+        figures=[visualize_run(results)]
+    )
+
+    with open(pdf_file, "rb") as f:
+        st.download_button(
+            label="Download PDF Report",
+            data=f,
+            file_name=f"{run_name}_report.pdf",
+            mime="application/pdf"
         )
 
-        with open(pdf_file, "rb") as f:
-            st.download_button(
-                label="Download PDF Report",
-                data=f,
-                file_name=f"{run_name}_report.pdf",
-                mime="application/pdf"
-            )
+    # --- Telemetry visualization ---
+    st.subheader("Telemetry Overview")
+    df_true = results['true_history']
+    df_obs = results['observed_history']
 
-        # --- Telemetry visualization ---
-        st.subheader("Telemetry Overview")
-        df_true = results['true_history']
-        df_obs = results['observed_history']
+    fig, axes = plt.subplots(3, 2, figsize=(16, 12))
+    axes = axes.flatten()
+    signals = ['X', 'S_glc', 'P', 'DO', 'pH']
+    titles = ['Biomass [g/L]', 'Glucose [g/L]', 'Product Titer [g/L]', 
+            'Dissolved Oxygen [%]', 'pH']
 
-        fig, axes = plt.subplots(3, 2, figsize=(16, 12))
-        axes = axes.flatten()
-        signals = ['X', 'S_glc', 'P', 'DO', 'pH']
-        titles = ['Biomass [g/L]', 'Glucose [g/L]', 'Product Titer [g/L]', 
-                'Dissolved Oxygen [%]', 'pH']
+    for i, (sig, title) in enumerate(zip(signals, titles)):
+        ax = axes[i]
+        ax.plot(df_true['time'], df_true[sig], label='True', linewidth=2, alpha=0.8)
+        ax.plot(df_obs['time'], df_obs[sig], label='Observed', linestyle='--', alpha=0.6)
 
-        for i, (sig, title) in enumerate(zip(signals, titles)):
-            ax = axes[i]
-            ax.plot(df_true['time'], df_true[sig], label='True', linewidth=2, alpha=0.8)
-            ax.plot(df_obs['time'], df_obs[sig], label='Observed', linestyle='--', alpha=0.6)
+        # Highlight anomalies
+        if results['anomaly_scores']:
+            sig_anomalies = [a for a in results['anomaly_scores'] 
+                            if a.signal == sig and a.is_anomaly]
+            anomaly_times = [a.time for a in sig_anomalies]
+            if anomaly_times:
+                anomaly_mask = df_obs['time'].isin(anomaly_times)
+                ax.scatter(df_obs.loc[anomaly_mask, 'time'], 
+                        df_obs.loc[anomaly_mask, sig],
+                        color='red', marker='x', s=100,
+                        label=f'Anomalies ({len(anomaly_times)})')
 
-            # Highlight anomalies
-            if results['anomaly_scores']:
-                sig_anomalies = [a for a in results['anomaly_scores'] 
-                                if a.signal == sig and a.is_anomaly]
-                anomaly_times = [a.time for a in sig_anomalies]
-                if anomaly_times:
-                    anomaly_mask = df_obs['time'].isin(anomaly_times)
-                    ax.scatter(df_obs.loc[anomaly_mask, 'time'], 
-                            df_obs.loc[anomaly_mask, sig],
-                            color='red', marker='x', s=100,
-                            label=f'Anomalies ({len(anomaly_times)})')
+        ax.set_title(title)
+        ax.set_xlabel('Time [h]')
+        ax.grid(alpha=0.3)
+        ax.legend()
 
-            ax.set_title(title)
-            ax.set_xlabel('Time [h]')
-            ax.grid(alpha=0.3)
-            ax.legend()
+    axes[-1].axis('off')
+    st.pyplot(fig)
 
-        axes[-1].axis('off')
-        st.pyplot(fig)
+    # --- Run summary ---
+    st.subheader("Run Summary")
+    st.write({
+        "Final Titer [g/L]": results['final_titer'],
+        "Final Biomass [g/L]": results['final_biomass'],
+        "Total Anomalies": results['num_anomalies']
+    })
 
-        # --- Run summary ---
-        st.subheader("Run Summary")
-        st.write({
-            "Final Titer [g/L]": results['final_titer'],
-            "Final Biomass [g/L]": results['final_biomass'],
-            "Total Anomalies": results['num_anomalies']
-        })
-
-        st.success("Simulation complete")
+    st.success("Simulation complete")
