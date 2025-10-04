@@ -68,6 +68,13 @@ client = WorkspaceClient(
 st.set_page_config(page_title="SABR: Synthetic Agentic BioReactor", layout="wide")
 st.title("SABR: Synthetic Agentic BioReactor Simulation")
 
+if 'results' not in st.session_state:
+    st.session_state.results = None
+if 'custom_config' not in st.session_state:
+    st.session_state.custom_config = None
+if 'selected_fault' not in st.session_state:
+    st.session_state.selected_fault = None
+
 # --- Sidebar parameters ---
 st.sidebar.header("Simulation Settings")
 
@@ -125,77 +132,86 @@ if run_button:
         )
         results = workflow.run_with_monitoring(base_feed_rate=base_feed_rate)
 
-    st.success(f"Simulation complete! Run ID: {results['run_id']}")
+    st.session_state.results = results
+    st.session_state.custom_config = custom_config
+    st.session_state.selected_fault = selected_fault
 
-    # --- Agent explanation ---
-    if enable_agent and results['agent_explain']:
-        st.subheader("Agent Explanation / Root Cause Analysis")
-        st.text(results['agent_explain'])
+    if st.session_state.results is not None:
+        results = st.session_state.results
+        custom_config = st.session_state.custom_config
+        selected_fault = st.session_state.selected_fault
+        
+        st.success(f"Simulation complete! Run ID: {results['run_id']}")
 
-    # ---- Report generation ---
-    reporter = BioreactorPDFReport()
-    run_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_name = f"{selected_fault}_{run_timestamp}"
+        # --- Agent explanation ---
+        if enable_agent and results['agent_explain']:
+            st.subheader("Agent Explanation / Root Cause Analysis")
+            st.text(results['agent_explain'])
 
-    pdf_file = reporter.generate_summary_pdf(
-        results=results,
-        telemetry_df=pd.DataFrame(results['observed_history']),
-        ai_summary=str(results['agent_explain']),
-        faults=[FAULT_TEMPLATES[selected_fault]],
-        param_config=custom_config,
-        figures=[visualize_run(results)]
-    )
+        # ---- Report generation ---
+        reporter = BioreactorPDFReport()
+        run_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        run_name = f"{selected_fault}_{run_timestamp}"
 
-    with open(pdf_file, "rb") as f:
-        st.download_button(
-            label="Download PDF Report",
-            data=f,
-            file_name=f"{run_name}_report.pdf",
-            mime="application/pdf"
+        pdf_file = reporter.generate_summary_pdf(
+            results=results,
+            telemetry_df=pd.DataFrame(results['observed_history']),
+            ai_summary=str(results['agent_explain']),
+            faults=[FAULT_TEMPLATES[selected_fault]],
+            param_config=custom_config,
+            figures=[visualize_run(results)]
         )
 
-    # --- Telemetry visualization ---
-    st.subheader("Telemetry Overview")
-    df_true = results['true_history']
-    df_obs = results['observed_history']
+        with open(pdf_file, "rb") as f:
+            st.download_button(
+                label="Download PDF Report",
+                data=f,
+                file_name=f"{run_name}_report.pdf",
+                mime="application/pdf"
+            )
 
-    fig, axes = plt.subplots(3, 2, figsize=(16, 12))
-    axes = axes.flatten()
-    signals = ['X', 'S_glc', 'P', 'DO', 'pH']
-    titles = ['Biomass [g/L]', 'Glucose [g/L]', 'Product Titer [g/L]', 
-              'Dissolved Oxygen [%]', 'pH']
+        # --- Telemetry visualization ---
+        st.subheader("Telemetry Overview")
+        df_true = results['true_history']
+        df_obs = results['observed_history']
 
-    for i, (sig, title) in enumerate(zip(signals, titles)):
-        ax = axes[i]
-        ax.plot(df_true['time'], df_true[sig], label='True', linewidth=2, alpha=0.8)
-        ax.plot(df_obs['time'], df_obs[sig], label='Observed', linestyle='--', alpha=0.6)
+        fig, axes = plt.subplots(3, 2, figsize=(16, 12))
+        axes = axes.flatten()
+        signals = ['X', 'S_glc', 'P', 'DO', 'pH']
+        titles = ['Biomass [g/L]', 'Glucose [g/L]', 'Product Titer [g/L]', 
+                'Dissolved Oxygen [%]', 'pH']
 
-        # Highlight anomalies
-        if results['anomaly_scores']:
-            sig_anomalies = [a for a in results['anomaly_scores'] 
-                             if a.signal == sig and a.is_anomaly]
-            anomaly_times = [a.time for a in sig_anomalies]
-            if anomaly_times:
-                anomaly_mask = df_obs['time'].isin(anomaly_times)
-                ax.scatter(df_obs.loc[anomaly_mask, 'time'], 
-                           df_obs.loc[anomaly_mask, sig],
-                           color='red', marker='x', s=100,
-                           label=f'Anomalies ({len(anomaly_times)})')
+        for i, (sig, title) in enumerate(zip(signals, titles)):
+            ax = axes[i]
+            ax.plot(df_true['time'], df_true[sig], label='True', linewidth=2, alpha=0.8)
+            ax.plot(df_obs['time'], df_obs[sig], label='Observed', linestyle='--', alpha=0.6)
 
-        ax.set_title(title)
-        ax.set_xlabel('Time [h]')
-        ax.grid(alpha=0.3)
-        ax.legend()
+            # Highlight anomalies
+            if results['anomaly_scores']:
+                sig_anomalies = [a for a in results['anomaly_scores'] 
+                                if a.signal == sig and a.is_anomaly]
+                anomaly_times = [a.time for a in sig_anomalies]
+                if anomaly_times:
+                    anomaly_mask = df_obs['time'].isin(anomaly_times)
+                    ax.scatter(df_obs.loc[anomaly_mask, 'time'], 
+                            df_obs.loc[anomaly_mask, sig],
+                            color='red', marker='x', s=100,
+                            label=f'Anomalies ({len(anomaly_times)})')
 
-    axes[-1].axis('off')
-    st.pyplot(fig)
+            ax.set_title(title)
+            ax.set_xlabel('Time [h]')
+            ax.grid(alpha=0.3)
+            ax.legend()
 
-    # --- Run summary ---
-    st.subheader("Run Summary")
-    st.write({
-        "Final Titer [g/L]": results['final_titer'],
-        "Final Biomass [g/L]": results['final_biomass'],
-        "Total Anomalies": results['num_anomalies']
-    })
+        axes[-1].axis('off')
+        st.pyplot(fig)
 
-    st.success("Simulation complete")
+        # --- Run summary ---
+        st.subheader("Run Summary")
+        st.write({
+            "Final Titer [g/L]": results['final_titer'],
+            "Final Biomass [g/L]": results['final_biomass'],
+            "Total Anomalies": results['num_anomalies']
+        })
+
+        st.success("Simulation complete")
