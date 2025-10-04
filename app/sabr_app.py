@@ -31,6 +31,7 @@ from databricks.sdk import WorkspaceClient
 import streamlit as st
 from datetime import datetime
 import shutil
+import base64
 
 def get_secret(key):
     try:
