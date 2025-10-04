@@ -175,36 +175,44 @@ if st.session_state.results is not None:
     df_true = results['true_history']
     df_obs = results['observed_history']
 
-    fig, axes = plt.subplots(3, 2, figsize=(16, 12))
-    axes = axes.flatten()
-    signals = ['X', 'S_glc', 'P', 'DO', 'pH']
-    titles = ['Biomass [g/L]', 'Glucose [g/L]', 'Product Titer [g/L]', 
-            'Dissolved Oxygen [%]', 'pH']
+    if 'current_fig' not in st.session_state or st.session_state.get('last_run_id') != results['run_id']:
+        fig, axes = plt.subplots(3, 2, figsize=(18, 16)) 
+        plt.subplots_adjust(hspace=0.7, wspace=0.35)  
+        axes = axes.flatten()
+        signals = ['X', 'S_glc', 'P', 'DO', 'pH']
+        titles = ['Biomass [g/L]', 'Glucose [g/L]', 'Product Titer [g/L]', 
+                'Dissolved Oxygen [%]', 'pH']
 
-    for i, (sig, title) in enumerate(zip(signals, titles)):
-        ax = axes[i]
-        ax.plot(df_true['time'], df_true[sig], label='True', linewidth=2, alpha=0.8)
-        ax.plot(df_obs['time'], df_obs[sig], label='Observed', linestyle='--', alpha=0.6)
+        for i, (sig, title) in enumerate(zip(signals, titles)):
+            ax = axes[i]
+            ax.plot(df_true['time'], df_true[sig], label='True', linewidth=2, alpha=0.8)
+            ax.plot(df_obs['time'], df_obs[sig], label='Observed', linestyle='--', alpha=0.6)
 
-        # Highlight anomalies
-        if results['anomaly_scores']:
-            sig_anomalies = [a for a in results['anomaly_scores'] 
-                            if a.signal == sig and a.is_anomaly]
-            anomaly_times = [a.time for a in sig_anomalies]
-            if anomaly_times:
-                anomaly_mask = df_obs['time'].isin(anomaly_times)
-                ax.scatter(df_obs.loc[anomaly_mask, 'time'], 
-                        df_obs.loc[anomaly_mask, sig],
-                        color='red', marker='x', s=100,
-                        label=f'Anomalies ({len(anomaly_times)})')
+            # Highlight anomalies
+            if results['anomaly_scores']:
+                sig_anomalies = [a for a in results['anomaly_scores'] 
+                                if a.signal == sig and a.is_anomaly]
+                anomaly_times = [a.time for a in sig_anomalies]
+                if anomaly_times:
+                    anomaly_mask = df_obs['time'].isin(anomaly_times)
+                    ax.scatter(df_obs.loc[anomaly_mask, 'time'], 
+                            df_obs.loc[anomaly_mask, sig],
+                            color='red', marker='x', s=100,
+                            label=f'Anomalies ({len(anomaly_times)})')
 
-        ax.set_title(title)
-        ax.set_xlabel('Time [h]')
-        ax.grid(alpha=0.3)
-        ax.legend()
+            ax.set_title(title)
+            ax.set_xlabel('Time [h]')
+            ax.grid(alpha=0.3)
+            ax.legend()
 
-    axes[-1].axis('off')
-    st.pyplot(fig)
+        axes[-1].axis('off')
+        
+        # Store in session state
+        st.session_state.current_fig = fig
+        st.session_state.last_run_id = results['run_id']
+
+    # Display the cached figure (only once)
+    st.pyplot(st.session_state.current_fig)
 
     # --- Run summary ---
     st.subheader("Run Summary")
