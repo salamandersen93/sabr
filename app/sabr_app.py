@@ -133,7 +133,7 @@ if run_button:
         telemetry_df=pd.DataFrame(results['observed_history']),
         ai_summary=str(results['agent_explain']),
         faults=[FAULT_TEMPLATES[selected_fault]],
-        param_config=config,
+        param_config=custom_config,
         figures=[fig]
     )
     pdf_path = os.path.join(output_folder, f"{run_name}_report.pdf")
