@@ -146,9 +146,10 @@ def visualize_run(results: Dict, save_path: Optional[str] = None):
     df_true = results['true_history']
     df_obs = results['observed_history']
 
-    fig, axes = plt.subplots(3, 2, figsize=(16, 12))
-    plt.subplots_adjust(hspace=0.4, wspace=0.3)  # Add this line
+    fig, axes = plt.subplots(3, 2, figsize=(18, 16)) 
+    plt.subplots_adjust(hspace=0.7, wspace=0.35)  
     axes = axes.flatten()
+
     signals = ['X', 'S_glc', 'P', 'DO', 'pH']
     titles = ['Biomass [g/L]', 'Glucose [g/L]', 'Product Titer [g/L]', 
               'Dissolved Oxygen [%]', 'pH']
