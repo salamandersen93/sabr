@@ -49,6 +49,14 @@ def get_secret(key):
             print('unable to find streamlit secrets with error:', e)
             raise
 
+def create_download_link(file_path, link_text="Download PDF"):
+    with open(file_path, "rb") as f:
+        data = f.read()
+    b64 = base64.b64encode(data).decode()
+    href = f'<a href="data:application/pdf;base64,{b64}" download="{os.path.basename(file_path)}">{link_text}</a>'
+    from IPython.display import display, HTML
+    display(HTML(href))
+
 host = get_secret("host")
 token = get_secret("token")
 
