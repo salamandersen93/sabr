@@ -37,7 +37,7 @@ def get_secret(key):
         # Fallback to Streamlit secrets or environment variable
         try:
             import streamlit as st
-            return st.secrets[key]
+            return st.secrets['databricks'][key]
         except Exception:
             return os.environ.get(key)
 
