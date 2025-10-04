@@ -1,0 +1,14 @@
+[theme]
+# Backgrounds
+primaryColor = "#BFA046"       # muted gold for accents
+backgroundColor = "#F5F3EE"    # soft muted beige
+secondaryBackgroundColor = "#E6E4DF"  # slightly darker beige for sidebars/cards
+
+# Text
+textColor = "#1C1C1C"          # near-black for readability
+
+# Optional highlight
+accentColor = "#6B8B8A"        # very muted green-blue (scientific/academic vibe)
+
+# Fonts (neutral + professional)
+font = "sans serif"
