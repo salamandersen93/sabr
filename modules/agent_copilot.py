@@ -42,6 +42,8 @@ class ExplainerAgent:
                  endpoint="databricks/databricks-meta-llama-3-3-70b-instruct"):
         
         os.environ["CREWAI_TELEMETRY_OPT_OUT"] = "true"
+        os.environ["CREWAI_DISABLE_TELEMETRY"] = "true"
+        os.environ["OTEL_SDK_DISABLED"] = "true"
         os.environ["DATABRICKS_HOST"] = host
         os.environ["DATABRICKS_TOKEN"] = token
         os.environ["MLFLOW_TRACKING_URI"] = "databricks"
