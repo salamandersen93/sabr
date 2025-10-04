@@ -41,6 +41,7 @@ class ExplainerAgent:
     def __init__(self, host: str, token:str,
                  endpoint="databricks/databricks-meta-llama-3-3-70b-instruct"):
         
+        os.environ["CREWAI_TELEMETRY_OPT_OUT"] = "true"
         os.environ["DATABRICKS_HOST"] = host
         os.environ["DATABRICKS_TOKEN"] = token
         os.environ["MLFLOW_TRACKING_URI"] = "databricks"

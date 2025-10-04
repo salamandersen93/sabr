@@ -120,6 +120,12 @@ if run_button:
         st.subheader("Agent Explanation / Root Cause Analysis")
         st.text(results['agent_explain'])
 
+    # ---- Report generation ---
+    reporter = BioreactorPDFReport()
+    timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_folder = f"/tmp/sabr_runs_{timestamp_str}"
+    os.makedirs(output_folder, exist_ok=True)
+
     pdf_file = reporter.generate_summary_pdf(
         results=results,
         telemetry_df=pd.DataFrame(results['observed_history']),
