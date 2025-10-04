@@ -30,6 +30,7 @@ import matplotlib.pyplot as plt
 from databricks.sdk import WorkspaceClient
 import streamlit as st
 from datetime import datetime
+import shutil
 
 def get_secret(key):
     try:
