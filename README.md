@@ -10,7 +10,7 @@ First launch may take ~30 seconds while Streamlit Cloud spins up the application
 
 ## Overview
 
-**SABR** is a comprehensive platform that combines physics-based bioreactor simulation with intelligent fault detection and AI-powered troubleshooting. The system uses a simple yet effective modeling architecture for core bioreactor parameters and features a custom fault injection engine to create realistic, dynamic bioreactor runs.
+**SABR** is a comprehensive platform that combines physics-based bioreactor simulation with intelligent fault detection and AI-powered troubleshooting. The system uses a simple yet effective modeling architecture for core bioreactor parameters and features a custom fault injection engine to create realistic, dynamic bioreactor runs. SABR was developed in Databricks Free Edition and deployed on Streamlit Cloud.
 
 ---
 
