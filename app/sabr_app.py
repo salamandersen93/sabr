@@ -32,8 +32,12 @@ import streamlit as st
 def get_secret(key):
     try:
         # Try Databricks secrets
+        from pyspark.dbutils import DBUtils
+        dbutils = DBUtils(spark)
         return dbutils.secrets.get(scope="sabr", key=key)
-    except Exception:
+    except Exception as e:
+        print('Unable to find databricks secrets with error:', e)
+        print('falling back to streamlit secrets.')
         # Fallback to Streamlit secrets or environment variable
         try:
             import streamlit as st
