@@ -19,7 +19,7 @@ if str(MODULES_DIR) not in sys.path:
     sys.path.insert(0, str(MODULES_DIR))
 
 # Now safe to import
-from modules.run_simulation_workflow_sqlite import SABRWorkflow
+from modules.run_simulation_workflow_sqlite import SABRWorkflow, visualize_run
 from modules.config import (SIMULATION_PARAMS,INITIAL_STATE,KINETIC_PARAMS,
                             REACTOR_PARAMS,SENSOR_PARAMS,FAULT_TEMPLATES,)
 from modules.reporting import BioreactorPDFReport
@@ -134,7 +134,7 @@ if run_button:
         ai_summary=str(results['agent_explain']),
         faults=[FAULT_TEMPLATES[selected_fault]],
         param_config=custom_config,
-        figures=[fig]
+        figures=[visualize_run(results)]
     )
     pdf_path = os.path.join(output_folder, f"{run_name}_report.pdf")
     shutil.move(pdf_file, pdf_path)
