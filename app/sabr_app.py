@@ -22,6 +22,7 @@ if str(MODULES_DIR) not in sys.path:
 from modules.run_simulation_workflow_sqlite import SABRWorkflow
 from modules.config import (SIMULATION_PARAMS,INITIAL_STATE,KINETIC_PARAMS,
                             REACTOR_PARAMS,SENSOR_PARAMS,FAULT_TEMPLATES,)
+from modules.reporting import BioreactorPDFReport
 
 import streamlit as st
 import pandas as pd
