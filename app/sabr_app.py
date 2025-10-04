@@ -136,8 +136,6 @@ if run_button:
     reporter = BioreactorPDFReport()
     run_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     run_name = f"{selected_fault}_{run_timestamp}"
-    output_folder = f"/tmp/sabr_runs_{run_timestamp}"
-    os.makedirs(output_folder, exist_ok=True)
 
     pdf_file = reporter.generate_summary_pdf(
         results=results,
@@ -147,10 +145,14 @@ if run_button:
         param_config=custom_config,
         figures=[visualize_run(results)]
     )
-    pdf_path = os.path.join(output_folder, f"{run_name}_report.pdf")
-    shutil.move(pdf_file, pdf_path)
-    print(f"PDF report saved to {pdf_path}")
-    create_download_link(pdf_path)
+
+    with open(pdf_file, "rb") as f:
+        st.download_button(
+            label="Download PDF Report",
+            data=f,
+            file_name=f"{run_name}_report.pdf",
+            mime="application/pdf"
+        )
 
     # --- Telemetry visualization ---
     st.subheader("Telemetry Overview")
