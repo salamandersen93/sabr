@@ -3,6 +3,7 @@
 > An interactive, AI-driven bioprocess simulation and analytics platform for synthetic bioreactor modeling, anomaly detection, and agent-assisted troubleshooting.
 
 **Try it here:** https://sabr-app.streamlit.app/
+
 First launch may take ~30 seconds while Streamlit Cloud spins up the application.
 
 ---
