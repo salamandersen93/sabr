@@ -73,6 +73,7 @@ class ExplainerAgent:
         anomaly_data = [{'time': a.time,'signal': a.signal,'score': a.score,'method': a.method,}
                         for a in anomalies if a.is_anomaly]
         
+        anomalies_df = pd.DataFrame(anomaly_data) if anomaly_data else pd.DataFrame()
         anomalies_serialized = self._serialize_df(anomalies_df)
 
         # Define agent - use the endpoint string, LiteLLM will handle it with env vars

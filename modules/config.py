@@ -10,7 +10,7 @@ from typing import Dict
 # Simulation control
 SIMULATION_PARAMS: Dict = {
     "dt": 1,             # timestep [h]
-    "total_time": 120,   # total simulation time [h]
+    "total_time": 240,   # total simulation time [h]
     "random_seed": 42      # gaussian noise
 }
 
