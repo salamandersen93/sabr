@@ -65,7 +65,7 @@ client = WorkspaceClient(
     host=host,
     token=token)
 
-st.set_page_config(page_title="SABR: Synthetic Agentic BioReactor", layout="wide")
+st.set_page_config(page_title="SABR: Synthetic Agentic BioReactor", layout="wide",page_icon="cellicon.ico")
 st.title("SABR: Synthetic Agentic BioReactor Simulation")
 st.markdown("""
 <p style='font-size: 20px; color: #8B6914; line-height: 1.6;'>
