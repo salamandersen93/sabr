@@ -126,20 +126,25 @@ if run_button:
         "FAULT_TEMPLATES": {selected_fault: FAULT_TEMPLATES[selected_fault]}
     }
     
-    with st.spinner("Running SABR simulation..."):
-        workflow = SABRWorkflow(
-            config_dict=custom_config,
-            enable_agent=enable_agent,
-            enable_anomaly_detection=enable_anomaly,
-            enable_agent_execution=enable_agent,
-            host=host,
-            token=token
-        )
-        results = workflow.run_with_monitoring(base_feed_rate=base_feed_rate)
+    try:
+        with st.spinner("Running SABR simulation..."):
+            workflow = SABRWorkflow(
+                config_dict=custom_config,
+                enable_agent=enable_agent,
+                enable_anomaly_detection=enable_anomaly,
+                enable_agent_execution=enable_agent,
+                host=host,
+                token=token
+            )
+            results = workflow.run_with_monitoring(base_feed_rate=base_feed_rate)
 
-    st.session_state.results = results
-    st.session_state.custom_config = custom_config
-    st.session_state.selected_fault = selected_fault
+        st.session_state.results = results
+        st.session_state.custom_config = custom_config
+        st.session_state.selected_fault = selected_fault
+        
+    except Exception as e:
+        st.error("Oops! We ran into an issue with our LLM integration (likely a rate limit or concurrency issue with Databricks free tier). Please try running the simulation again in a moment!")
+        st.info("If the issue persists, try disabling 'Enable Agentic Analysis' to run without AI root cause analysis.")
 
 if st.session_state.results is not None:
     results = st.session_state.results
