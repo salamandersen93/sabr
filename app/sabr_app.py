@@ -71,7 +71,7 @@ st.title("SABR: Synthetic Agentic BioReactor Simulation")
 st.markdown("""
 <div style='background-color: #E6E4DF; padding: 15px; border-radius: 8px; border-left: 4px solid #8B6914; margin-bottom: 20px;'>
     <p style='margin: 0; font-size: 16px; color: #1C1C1C;'>
-        <strong>👈 Open the sidebar</strong> (top-left arrow on mobile) to configure simulation settings and run experiments.
+        <strong>Open the sidebar</strong> (top-left on mobile) to configure simulation settings and run experiments.
     </p>
 </div>""", unsafe_allow_html=True)
 
