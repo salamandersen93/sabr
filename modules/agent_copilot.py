@@ -36,15 +36,21 @@ class ExplainerAgent:
         os.environ["DATABRICKS_API_BASE"] = f"https://dbc-7465342a-3f12.cloud.databricks.com/api/2.0/serving-endpoints"
         
         self.client = WorkspaceClient(host=host, token=token)
-        # Remove the "databricks/" prefix for the endpoint parameter
-        # We'll add it back when creating the LLM
         self.endpoint_name = endpoint
+        # DEBUGGING
+        endpoints = self.client.serving_endpoints.list()
+        print("Serving endpoints:", endpoints)
+        endpoint_info = client.serving_endpoints.get(name="databricks-meta-llama-3-3-70b-instruct")
+        print("Endpoint info:", endpoint_info)
+        print("DATABRICKS_HOST:", os.environ.get("DATABRICKS_HOST"))
+        print("DATABRICKS_API_BASE:", os.environ.get("DATABRICKS_API_BASE"))
+
         
         try:
             # Create the CrewAI LLM instance
             # Format: databricks/<endpoint-name>
             self.llm = LLM(model=f"{self.endpoint_name}", host=host, token=token, temperature=0.1, max_tokens=512)
-            print(f"Successfully initialized CrewAI LLM with endpoint: databricks/{self.endpoint_name}")
+            print(f"Successfully initialized CrewAI LLM with endpoint: {self.endpoint_name}")
         except Exception as e:
             print(f"Error initializing LLM: {e}")
             print(f"  Host: {host}")
