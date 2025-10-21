@@ -22,7 +22,7 @@ import os
 # AGENTIC PROCESSES
 class ExplainerAgent:
     def __init__(self, host: str, token: str,
-                 endpoint="databricks-meta-llama-3-3-70b-instruct"):
+                 endpoint="databricks/databricks-meta-llama-3-3-70b-instruct"):
         print('initializing agentic analysis')
         os.environ["CREWAI_TELEMETRY_OPT_OUT"] = "true"
         os.environ["CREWAI_DISABLE_TELEMETRY"] = "true"
