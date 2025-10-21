@@ -38,7 +38,6 @@ class ExplainerAgent:
         
         self.llm = LLM(
             model=f"databricks/{self.endpoint_name}",
-            base_url=f"{host}/serving-endpoints/{self.endpoint_name}/invocations",
             api_key=token,
             temperature=0.1,
             max_tokens=512)
