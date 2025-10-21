@@ -11,7 +11,7 @@ from enum import Enum
 import numpy as np
 import pandas as pd
 import mlflow.deployments
-from langchain_community.llms import LiteLLM
+from litellm import completion
 import json
 import mlflow
 from crewai import Agent, Task, Crew, LLM
