@@ -37,7 +37,7 @@ class ExplainerAgent:
         
         self.client = WorkspaceClient(host=host, token=token)
         #self.endpoint_name = endpoint
-        self.endpoint_name = "databricks-gpt-oss-20b"
+        self.endpoint_name = "databricks/databricks-gpt-oss-20b"
         # DEBUGGING
         endpoints = self.client.serving_endpoints.list()
         print("Serving endpoints:", endpoints)
