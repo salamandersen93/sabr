@@ -47,10 +47,6 @@ class ExplainerAgent:
 
     def explain(self, telemetry_snapshot, anomalies):
         # Check if LLM was initialized successfully
-        if self.llm is None:
-            error_msg = "LLM was not initialized properly. Check Databricks credentials and endpoint configuration."
-            print(f" {error_msg}")
-            return error_msg
         
         # Convert telemetry list to DataFrame then serialize
         print('telemetry snapshots:', type(telemetry_snapshot))
@@ -77,24 +73,13 @@ class ExplainerAgent:
         anomalies_df = pd.DataFrame(anomaly_data) if anomaly_data else pd.DataFrame()
         anomalies_serialized = self._serialize_df(anomalies_df)
 
-        # Define agent
-        try:
-            llama_agent = Agent(
-                role="Pharmaceutical Large Molecule Bioreactor Troubleshooting Expert",
-                goal="Give a concise, mechanistic explanation of why given conditions and issues might arise in a fed-batch CHO culture.",
-                backstory="You are a bioprocess expert. Analyze the following CHO cell bioreactor conditions and provide possible explanations. Categorize the primary root causes of any anomalies or deviations from the expected ideal conditions.",
-                llm=self.llm,
-                verbose=False
-            )
-            print(" Agent created successfully")
-        except Exception as e:
-            error_msg = f"Error creating agent: {e}"
-            print(f" {error_msg}")
-            import traceback
-            traceback.print_exc()
-            return error_msg
+        prompt = f"""
+        
+            role: Pharmaceutical Large Molecule Bioreactor Troubleshooting Expert.
 
-        prompt = f"""You are a Pharmaceutical Large Molecule Bioreactor Troubleshooting Expert specializing in fed-batch CHO cultures.
+            goal: Give a concise, mechanistic explanation of why given conditions and issues might arise in a fed-batch CHO culture.
+
+            backstory: You are a bioprocess expert. Analyze the following CHO cell bioreactor conditions and provide possible explanations. Categorize the primary root causes of any anomalies or deviations from the expected ideal conditions.
 
             Analyze the serialized telemetry data from a pharmaceutical bioreactor run. Provide a concise, mechanistic explanation of the run data, any concerning metrics, and your assessment of the cause for any anomalies.
 
