@@ -43,7 +43,7 @@ class ExplainerAgent:
         try:
             # Create the CrewAI LLM instance
             # Format: databricks/<endpoint-name>
-            self.llm = LLM(model=f"databricks/{self.endpoint_name}", host=host, token=token, temperature=0.1, max_tokens=512)
+            self.llm = LLM(model=f"{self.endpoint_name}", host=host, token=token, temperature=0.1, max_tokens=512)
             print(f"Successfully initialized CrewAI LLM with endpoint: databricks/{self.endpoint_name}")
         except Exception as e:
             print(f"Error initializing LLM: {e}")
