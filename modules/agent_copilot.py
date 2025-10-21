@@ -11,6 +11,7 @@ from enum import Enum
 import numpy as np
 import pandas as pd
 import mlflow.deployments
+from crewai.llms import DatabricksLLM
 import json
 import mlflow
 from crewai import Agent, Task, Crew, LLM
@@ -18,24 +19,6 @@ import mlflow.deployments
 from databricks.sdk import WorkspaceClient
 import streamlit as st
 import os
-
-class LlamaCrewAgent:
-    def __init__(self, endpoint="databricks/databricks-meta-llama-3-1-8b-instruct"):
-        self.client = mlflow.deployments.get_deploy_client("databricks")
-        self.endpoint = endpoint
-
-    def __call__(self, prompt, temperature=0.1, max_tokens=256):
-        messages = [{"role": "user", "content": prompt}]
-        response = self.client.predict(
-            endpoint=self.endpoint,
-            inputs={
-                "messages": messages,
-                "temperature": temperature,
-                "max_tokens": max_tokens
-            }
-        )
-        return response
-
 
 # AGENTIC PROCESSES
 class ExplainerAgent:
@@ -61,12 +44,12 @@ class ExplainerAgent:
         try:
             # Create the CrewAI LLM instance
             # Format: databricks/<endpoint-name>
-            self.llm = LLM(
-                model=f"databricks/{self.endpoint_name}",
+            self.llm = DatabricksLLM(
+                endpoint=self.endpoint_name,
+                host=host,
+                token=token,
                 temperature=0.1,
-                max_tokens=512,
-                api_key=token,
-                base_url=f"{host}/serving-endpoints"
+                max_tokens=512
             )
             print(f"Successfully initialized CrewAI LLM with endpoint: databricks/{self.endpoint_name}")
         except Exception as e:
