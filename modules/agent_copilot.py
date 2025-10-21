@@ -11,7 +11,7 @@ from enum import Enum
 import numpy as np
 import pandas as pd
 import mlflow.deployments
-from crewai.llms import DatabricksLLM
+from langchain_community.llms import LiteLLM
 import json
 import mlflow
 from crewai import Agent, Task, Crew, LLM
@@ -44,13 +44,7 @@ class ExplainerAgent:
         try:
             # Create the CrewAI LLM instance
             # Format: databricks/<endpoint-name>
-            self.llm = DatabricksLLM(
-                endpoint=self.endpoint_name,
-                host=host,
-                token=token,
-                temperature=0.1,
-                max_tokens=512
-            )
+            self.llm = LiteLLM(model=self.endpoint_name,host=host,token=token,temperature=0.1,max_tokens=512)
             print(f"Successfully initialized CrewAI LLM with endpoint: databricks/{self.endpoint_name}")
         except Exception as e:
             print(f"Error initializing LLM: {e}")
