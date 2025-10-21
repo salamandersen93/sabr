@@ -11,7 +11,6 @@ from enum import Enum
 import numpy as np
 import pandas as pd
 import mlflow.deployments
-from litellm import completion
 import json
 import mlflow
 from crewai import Agent, Task, Crew, LLM
@@ -23,7 +22,7 @@ import os
 # AGENTIC PROCESSES
 class ExplainerAgent:
     def __init__(self, host: str, token: str,
-                 endpoint="databricks-meta-llama-3-3-70b-instruct"):
+                 endpoint="databricks/databricks-meta-llama-3-3-70b-instruct"):
         print('initializing agentic analysis')
         os.environ["CREWAI_TELEMETRY_OPT_OUT"] = "true"
         os.environ["CREWAI_DISABLE_TELEMETRY"] = "true"
@@ -44,7 +43,7 @@ class ExplainerAgent:
         try:
             # Create the CrewAI LLM instance
             # Format: databricks/<endpoint-name>
-            self.llm = LiteLLM(model=self.endpoint_name,host=host,token=token,temperature=0.1,max_tokens=512)
+            self.llm = LLM(model=self.endpoint_name,host=host,token=token,temperature=0.1,max_tokens=512)
             print(f"Successfully initialized CrewAI LLM with endpoint: databricks/{self.endpoint_name}")
         except Exception as e:
             print(f"Error initializing LLM: {e}")
