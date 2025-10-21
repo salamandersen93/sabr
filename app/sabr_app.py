@@ -45,7 +45,9 @@ def get_secret(key):
         # Fallback to Streamlit secrets or environment variable
         try:
             import streamlit as st
-            return st.secrets['databricks'][key]
+            secret = st.secrets['databricks'][key]
+            print('got streamlit secret!')
+            return secret
         except Exception as e:
             print('unable to find streamlit secrets with error:', e)
             raise
