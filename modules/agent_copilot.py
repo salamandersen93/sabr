@@ -39,6 +39,10 @@ class ExplainerAgent:
         # Remove the "databricks/" prefix for the endpoint parameter
         # We'll add it back when creating the LLM
         self.endpoint_name = endpoint
+
+        print("Listing Databricks endpoints...")
+        for ep in self.client.serving_endpoints.list():
+            print(ep)
         
         try:
             # Create the CrewAI LLM instance
