@@ -30,14 +30,19 @@ class ExplainerAgent:
         os.environ["DATABRICKS_HOST"] = host
         os.environ["DATABRICKS_TOKEN"] = token
         os.environ["MLFLOW_TRACKING_URI"] = "databricks"
-        
-        # Critical: Set these for LiteLLM to work with Databricks
         os.environ["DATABRICKS_API_KEY"] = token
-        os.environ["DATABRICKS_API_BASE"] = f"https://dbc-7465342a-3f12.cloud.databricks.com/api/2.0"
+        os.environ["DATABRICKS_API_BASE"] = f"{host}/serving-endpoints"
         
         self.client = WorkspaceClient(host=host, token=token)
-        #self.endpoint_name = endpoint
-        self.endpoint_name = f"databricks/{endpoint}"
+        self.endpoint_name = endpoint  # No prefix, no /invocations
+        
+        self.llm = LLM(
+            model=f"databricks/{self.endpoint_name}",
+            base_url=f"{host}/serving-endpoints/{self.endpoint_name}/invocations",
+            api_key=token,
+            temperature=0.1,
+            max_tokens=512)
+
         # DEBUGGING
         endpoints = self.client.serving_endpoints.list()
         print("Serving endpoints:", endpoints)
