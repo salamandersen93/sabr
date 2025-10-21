@@ -33,10 +33,11 @@ class ExplainerAgent:
         
         # Critical: Set these for LiteLLM to work with Databricks
         os.environ["DATABRICKS_API_KEY"] = token
-        os.environ["DATABRICKS_API_BASE"] = f"https://dbc-7465342a-3f12.cloud.databricks.com/api/2.0/serving-endpoints"
+        os.environ["DATABRICKS_API_BASE"] = f"https://dbc-7465342a-3f12.cloud.databricks.com/api/2.0"
         
         self.client = WorkspaceClient(host=host, token=token)
-        self.endpoint_name = endpoint
+        #self.endpoint_name = endpoint
+        self.endpoint_name = "databricks-gpt-oss-20b"
         # DEBUGGING
         endpoints = self.client.serving_endpoints.list()
         print("Serving endpoints:", endpoints)
