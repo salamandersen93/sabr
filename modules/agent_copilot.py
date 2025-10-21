@@ -23,41 +23,21 @@ import os
 class ExplainerAgent:
     def __init__(self, host: str, token: str,
                  endpoint="databricks-meta-llama-3-3-70b-instruct"):
-        print('initializing agentic analysis')
-        os.environ["CREWAI_TELEMETRY_OPT_OUT"] = "true"
-        os.environ["CREWAI_DISABLE_TELEMETRY"] = "true"
-        os.environ["OTEL_SDK_DISABLED"] = "true"
         os.environ["DATABRICKS_HOST"] = host
         os.environ["DATABRICKS_TOKEN"] = token
-        os.environ["MLFLOW_TRACKING_URI"] = "databricks"
-        os.environ["DATABRICKS_API_KEY"] = token
-        os.environ["DATABRICKS_API_BASE"] = f"{host}/serving-endpoints"
         
-        self.client = WorkspaceClient(host=host, token=token)
         self.endpoint_name = endpoint
-
-        # DEBUGGING
-        endpoints = self.client.serving_endpoints.list()
-        print("Serving endpoints:", endpoints)
-        print("DATABRICKS_HOST:", os.environ.get("DATABRICKS_HOST"))
-        print("DATABRICKS_API_BASE:", os.environ.get("DATABRICKS_API_BASE"))
- 
-        try:
-            # Create the CrewAI LLM instance
-            # Format: databricks/<endpoint-name>
-            self.llm = LLM(
-                model=f"databricks/{self.endpoint_name}",
-                api_key=token,
-                temperature=0.1,
-                max_tokens=512)
-            
-            print(f"Successfully initialized CrewAI LLM with endpoint: {self.endpoint_name}")
-        except Exception as e:
-            print(f"Error initializing LLM: {e}")
-            print(f"  Host: {host}")
-            print(f"  Endpoint: databricks/{self.endpoint_name}")
-            # Set to None so we can check later
-            self.llm = None
+        self.client = mlflow.deployments.get_deploy_client("databricks")
+    
+    def _call_llm(self, messages):
+        response = self.client.predict(
+            endpoint=self.endpoint_name,
+            inputs={
+                "messages": messages,
+                "temperature": 0.1,
+                "max_tokens": 512})
+        
+        return response['choices'][0]['message']['content']
 
     def _serialize_df(self, df):
         """Convert DataFrame to compact JSON string."""
@@ -114,27 +94,27 @@ class ExplainerAgent:
             traceback.print_exc()
             return error_msg
 
-        task = Task(
-            agent=llama_agent,
-            description="Bioreactor Troubleshooting. Analyze the serialized telemetry data from a pharmaceutical bioreactor run. Provide a concise, mechanistic explanation of the run data, any concerning metrics, and your assessment of the cause for any anomalies.\nTelemetry: {telemetry}\nAnomalies: {anomalies}",
-            expected_output="A 3-4 sentence assessment of the bioreactor telemetry data and statistically detected anomalies, including root cause analysis. Specifically recommend actions and a high level categorization of the root cause."
-        )
+        prompt = f"""You are a Pharmaceutical Large Molecule Bioreactor Troubleshooting Expert specializing in fed-batch CHO cultures.
 
-        crew = Crew(agents=[llama_agent], tasks=[task], verbose=False)
-        
-        # Pass data as inputs to the crew
+            Analyze the serialized telemetry data from a pharmaceutical bioreactor run. Provide a concise, mechanistic explanation of the run data, any concerning metrics, and your assessment of the cause for any anomalies.
+
+            Telemetry Data:
+            {telemetry_serialized}
+            Detected Anomalies:
+            {anomalies_serialized}
+
+            Provide a 3-4 sentence assessment including root cause analysis, specific recommended actions, and a high-level categorization of the root cause."""
+
+        messages = [{"role": "user", "content": prompt}]
+
         try:
-            print("Starting crew execution...")
-            result = crew.kickoff(inputs={
-                "telemetry": telemetry_serialized,
-                "anomalies": anomalies_serialized
-            })
-            print(" Agent explanation completed")
+            print("Starting LLM call...")
+            result = self._call_llm(messages)
+            print("Agent explanation completed")
             print(result)
             return result
+        
         except Exception as e:
-            error_msg = f"Error during crew execution: {e}"
-            print(f" {error_msg}")
-            import traceback
-            traceback.print_exc()
+            error_msg = f"Error during LLM call: {e}"
+            print(error_msg)
             return error_msg
