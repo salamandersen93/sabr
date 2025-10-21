@@ -22,4 +22,5 @@ crewai==0.201.1
 litellm>=1.40.0
 pydantic>=2.6.0
 typing-extensions>=4.8.0
+langchain>=0.3
 
