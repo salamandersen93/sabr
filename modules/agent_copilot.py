@@ -20,7 +20,7 @@ import streamlit as st
 import os
 
 class LlamaCrewAgent:
-    def __init__(self, endpoint="databricks/databricks-meta-llama-3-3-70b-instruct"):
+    def __init__(self, endpoint="databricks/databricks-meta-llama-3-1-8b-instruct"):
         self.client = mlflow.deployments.get_deploy_client("databricks")
         self.endpoint = endpoint
 
