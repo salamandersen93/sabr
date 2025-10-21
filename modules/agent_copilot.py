@@ -40,7 +40,7 @@ class ExplainerAgent:
         # DEBUGGING
         endpoints = self.client.serving_endpoints.list()
         print("Serving endpoints:", endpoints)
-        endpoint_info = client.serving_endpoints.get(name="databricks-meta-llama-3-3-70b-instruct")
+        endpoint_info = self.client.serving_endpoints.get(name="databricks-meta-llama-3-3-70b-instruct")
         print("Endpoint info:", endpoint_info)
         print("DATABRICKS_HOST:", os.environ.get("DATABRICKS_HOST"))
         print("DATABRICKS_API_BASE:", os.environ.get("DATABRICKS_API_BASE"))
