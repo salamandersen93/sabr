@@ -22,7 +22,7 @@ import os
 # AGENTIC PROCESSES
 class ExplainerAgent:
     def __init__(self, host: str, token: str,
-                 endpoint="databricks-meta-llama-3-3-70b-instruct"):
+                 endpoint="databricks/databricks-meta-llama-3-3-70b-instruct"):
         print('initializing agentic analysis')
         os.environ["CREWAI_TELEMETRY_OPT_OUT"] = "true"
         os.environ["CREWAI_DISABLE_TELEMETRY"] = "true"
@@ -34,18 +34,12 @@ class ExplainerAgent:
         os.environ["DATABRICKS_API_BASE"] = f"{host}/serving-endpoints"
         
         self.client = WorkspaceClient(host=host, token=token)
-        self.endpoint_name = endpoint  # No prefix, no /invocations
-        
-        self.llm = LLM(
-            model=f"databricks/{self.endpoint_name}",
-            api_key=token,
-            temperature=0.1,
-            max_tokens=512)
+        self.endpoint_name = endpoint
 
         # DEBUGGING
         endpoints = self.client.serving_endpoints.list()
         print("Serving endpoints:", endpoints)
-        endpoint_info = self.client.serving_endpoints.get(name="databricks-meta-llama-3-3-70b-instruct")
+        endpoint_info = self.client.serving_endpoints.get(name=self.endpoint_name)
         print("Endpoint info:", endpoint_info)
         print("DATABRICKS_HOST:", os.environ.get("DATABRICKS_HOST"))
         print("DATABRICKS_API_BASE:", os.environ.get("DATABRICKS_API_BASE"))
@@ -53,8 +47,13 @@ class ExplainerAgent:
         try:
             # Create the CrewAI LLM instance
             # Format: databricks/<endpoint-name>
-            self.llm = LLM(model=f"{self.endpoint_name}", host=host, token=token, temperature=0.1, max_tokens=512)
+            self.llm = LLM(
+            model=f"databricks/{self.endpoint_name}",
+                api_key=token,
+                temperature=0.1,
+                max_tokens=512)
             print(f"Successfully initialized CrewAI LLM with endpoint: {self.endpoint_name}")
+            
         except Exception as e:
             print(f"Error initializing LLM: {e}")
             print(f"  Host: {host}")
