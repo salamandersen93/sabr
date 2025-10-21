@@ -19,7 +19,6 @@ from databricks.sdk import WorkspaceClient
 import streamlit as st
 import os
 
-
 class LlamaCrewAgent:
     def __init__(self, endpoint="databricks/databricks-meta-llama-3-1-8b-instruct"):
         self.client = mlflow.deployments.get_deploy_client("databricks")
@@ -41,7 +40,7 @@ class LlamaCrewAgent:
 # AGENTIC PROCESSES
 class ExplainerAgent:
     def __init__(self, host: str, token: str,
-                 endpoint="databricks/databricks-meta-llama-3-3-70b-instruct"):
+                 endpoint="databricks-meta-llama-3-3-70b-instruct"):
         print('initializing agentic analysis')
         os.environ["CREWAI_TELEMETRY_OPT_OUT"] = "true"
         os.environ["CREWAI_DISABLE_TELEMETRY"] = "true"
@@ -49,23 +48,33 @@ class ExplainerAgent:
         os.environ["DATABRICKS_HOST"] = host
         os.environ["DATABRICKS_TOKEN"] = token
         os.environ["MLFLOW_TRACKING_URI"] = "databricks"
-        os.environ["DATABRICKS_API_KEY"] = token
         
-        # For LiteLLM/CrewAI, we also need DATABRICKS_API_BASE
-        # This should be the serving endpoints URL
+        # Critical: Set these for LiteLLM to work with Databricks
+        os.environ["DATABRICKS_API_KEY"] = token
         os.environ["DATABRICKS_API_BASE"] = f"{host}/serving-endpoints"
         
         self.client = WorkspaceClient(host=host, token=token)
-        self.endpoint = endpoint
+        # Remove the "databricks/" prefix for the endpoint parameter
+        # We'll add it back when creating the LLM
+        self.endpoint_name = endpoint
         
-        # Create the CrewAI LLM instance with proper Databricks configuration
-        # The model name should be in the format: databricks/<model-name>
-        self.llm = LLM(
-            model=endpoint,
-            temperature=0.1,
-            max_tokens=512
-        )
-        print(f"Initialized CrewAI LLM with endpoint: {endpoint}")
+        try:
+            # Create the CrewAI LLM instance
+            # Format: databricks/<endpoint-name>
+            self.llm = LLM(
+                model=f"databricks/{self.endpoint_name}",
+                temperature=0.1,
+                max_tokens=512,
+                api_key=token,
+                base_url=f"{host}/serving-endpoints"
+            )
+            print(f"Successfully initialized CrewAI LLM with endpoint: databricks/{self.endpoint_name}")
+        except Exception as e:
+            print(f"Error initializing LLM: {e}")
+            print(f"  Host: {host}")
+            print(f"  Endpoint: databricks/{self.endpoint_name}")
+            # Set to None so we can check later
+            self.llm = None
 
     def _serialize_df(self, df):
         """Convert DataFrame to compact JSON string."""
@@ -74,13 +83,20 @@ class ExplainerAgent:
         return str(df)
 
     def explain(self, telemetry_snapshot, anomalies):
+        # Check if LLM was initialized successfully
+        if self.llm is None:
+            error_msg = "LLM was not initialized properly. Check Databricks credentials and endpoint configuration."
+            print(f" {error_msg}")
+            return error_msg
+        
         # Convert telemetry list to DataFrame then serialize
         print('telemetry snapshots:', type(telemetry_snapshot))
         print('anomalies:', type(anomalies))
-        print('telemetry:', telemetry_snapshot[0])
-        print('anomalies:', anomalies[0])
-        print('telemetry 0 type:', type(telemetry_snapshot[0]))
-        print('anomalies 0 type:', type(anomalies[0]))
+        
+        if len(telemetry_snapshot) > 0:
+            print('telemetry sample:', telemetry_snapshot[0])
+        if len(anomalies) > 0:
+            print('anomalies sample:', anomalies[0])
 
         telemetry_df = pd.DataFrame(telemetry_snapshot)
         telemetry_serialized = self._serialize_df(telemetry_df)
@@ -98,14 +114,22 @@ class ExplainerAgent:
         anomalies_df = pd.DataFrame(anomaly_data) if anomaly_data else pd.DataFrame()
         anomalies_serialized = self._serialize_df(anomalies_df)
 
-        # Define agent - use the CrewAI LLM instance
-        llama_agent = Agent(
-            role="Pharmaceutical Large Molecule Bioreactor Troubleshooting Expert",
-            goal="Give a concise, mechanistic explanation of why given conditions and issues might arise in a fed-batch CHO culture.",
-            backstory="You are a bioprocess expert. Analyze the following CHO cell bioreactor conditions and provide possible explanations. Categorize the primary root causes of any anomalies or deviations from the expected ideal conditions.",
-            llm=self.llm,
-            verbose=False
-        )
+        # Define agent
+        try:
+            llama_agent = Agent(
+                role="Pharmaceutical Large Molecule Bioreactor Troubleshooting Expert",
+                goal="Give a concise, mechanistic explanation of why given conditions and issues might arise in a fed-batch CHO culture.",
+                backstory="You are a bioprocess expert. Analyze the following CHO cell bioreactor conditions and provide possible explanations. Categorize the primary root causes of any anomalies or deviations from the expected ideal conditions.",
+                llm=self.llm,
+                verbose=False
+            )
+            print(" Agent created successfully")
+        except Exception as e:
+            error_msg = f"Error creating agent: {e}"
+            print(f" {error_msg}")
+            import traceback
+            traceback.print_exc()
+            return error_msg
 
         task = Task(
             agent=llama_agent,
@@ -117,15 +141,17 @@ class ExplainerAgent:
         
         # Pass data as inputs to the crew
         try:
+            print("Starting crew execution...")
             result = crew.kickoff(inputs={
                 "telemetry": telemetry_serialized,
                 "anomalies": anomalies_serialized
             })
-            print("Agent explanation result:")
+            print(" Agent explanation completed")
             print(result)
             return result
         except Exception as e:
-            print(f"Error during crew execution: {e}")
+            error_msg = f"Error during crew execution: {e}"
+            print(f" {error_msg}")
             import traceback
             traceback.print_exc()
-            return f"Error generating explanation: {str(e)}"
+            return error_msg
