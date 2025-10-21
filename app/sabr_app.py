@@ -155,7 +155,7 @@ if run_button:
         st.session_state.selected_fault = selected_fault
         
     except Exception as e:
-        st.error('temporary debug statement:', e')
+        st.error('temporary debug statement:', e)
         st.error("Oops! We ran into an issue with our LLM integration (likely a rate limit or concurrency issue with Databricks free tier). Please try running the simulation again in a moment!")
         st.info("If the issue persists, try disabling 'Enable Agentic Analysis' to run without AI root cause analysis.")
 
