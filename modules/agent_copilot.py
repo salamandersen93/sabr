@@ -74,30 +74,29 @@ class ExplainerAgent:
         
         anomalies_df = pd.DataFrame(anomaly_data) if anomaly_data else pd.DataFrame()
         anomalies_serialized = self._serialize_df(anomalies_df)
-
-        # Define agent - use the endpoint string, LiteLLM will handle it with env vars
-        llama_agent = Agent(
-            role="Pharmaceutical Large Molecule Bioreactor Troubleshooting Expert",
-            goal="Give a concise, mechanistic explanation of why given conditions and issues might arise in a fed-batch CHO culture.",
-            backstory="You are a bioprocess expert. Analyze the following CHO cellbioreactor conditions and provide possible explanations. Categorize the primary root causes of any anomalies or deviations from the expected ideal conditions.",
-            llm=self.endpoint,
-            verbose=False # Optional: helps with debugging
-        )
-
-        task = Task(
-            agent=llama_agent,
-            description="Bioreactor Troubleshooting. Analyze the serialized telemetry data from a pharmaceutical bioreactor run. Provide a concise, mechanistic explanation of the run data, any concerning metrics, and your assessment of the cause for any anomalies.\nTelemetry: {telemetry}\nAnomalies: {anomalies}",
-            expected_output="A 3-4 sentence assessment of the bioreactor telemetry data and statistically detected anomalies, including root cause analysis. Specifically recommend actions and a high level categorization of the root cause."
-        )
-        task = Task(
-            agent=llama_agent,
-            description="Bioreactor Troubleshooting. Analyze the serialized telemetry data from a pharmaceutical bioreactor run. Provide a concise, mechanistic explanation of the run data, any concerning metrics, and your assessment of the cause for any anomalies.\nTelemetry: {telemetry}\nAnomalies: {anomalies}",
-            expected_output="A 3-4 sentence assessment of the bioreactor telemetry data and statistically detected anomalies, including root cause analysis. Specifically recommend actions and a high level categorization of the root cause."
-        )
-
-        crew = Crew(agents=[llama_agent],tasks=[task],verbose=False)
-        # Pass data as inputs to the crew
         try:
+            # Define agent - use the endpoint string, LiteLLM will handle it with env vars
+            llama_agent = Agent(
+                role="Pharmaceutical Large Molecule Bioreactor Troubleshooting Expert",
+                goal="Give a concise, mechanistic explanation of why given conditions and issues might arise in a fed-batch CHO culture.",
+                backstory="You are a bioprocess expert. Analyze the following CHO cellbioreactor conditions and provide possible explanations. Categorize the primary root causes of any anomalies or deviations from the expected ideal conditions.",
+                llm=self.endpoint,
+                verbose=False # Optional: helps with debugging
+            )
+
+            task = Task(
+                agent=llama_agent,
+                description="Bioreactor Troubleshooting. Analyze the serialized telemetry data from a pharmaceutical bioreactor run. Provide a concise, mechanistic explanation of the run data, any concerning metrics, and your assessment of the cause for any anomalies.\nTelemetry: {telemetry}\nAnomalies: {anomalies}",
+                expected_output="A 3-4 sentence assessment of the bioreactor telemetry data and statistically detected anomalies, including root cause analysis. Specifically recommend actions and a high level categorization of the root cause."
+            )
+            task = Task(
+                agent=llama_agent,
+                description="Bioreactor Troubleshooting. Analyze the serialized telemetry data from a pharmaceutical bioreactor run. Provide a concise, mechanistic explanation of the run data, any concerning metrics, and your assessment of the cause for any anomalies.\nTelemetry: {telemetry}\nAnomalies: {anomalies}",
+                expected_output="A 3-4 sentence assessment of the bioreactor telemetry data and statistically detected anomalies, including root cause analysis. Specifically recommend actions and a high level categorization of the root cause."
+            )
+
+            crew = Crew(agents=[llama_agent],tasks=[task],verbose=False)
+            # Pass data as inputs to the crew
             result = crew.kickoff(inputs={
                 "telemetry": telemetry_serialized,
                 "anomalies": anomalies_serialized
