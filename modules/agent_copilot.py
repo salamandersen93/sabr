@@ -68,12 +68,13 @@ class ExplainerAgent:
 
         telemetry_df = pd.DataFrame(telemetry_snapshot)
         telemetry_serialized = self._serialize_df(telemetry_df)
+        print('got telemetry data...')
 
-        anomaly_data = [{'time': a.time,'signal': a.signal,'score': a.score,'method': a.method,}
-                        for a in anomalies if a.is_anomaly]
-        
+        anomaly_data = [{'time': a.time,'signal': a.signal,'score': a.score,'method': a.method,} for a in anomalies if a.is_anomaly]
         anomalies_df = pd.DataFrame(anomaly_data) if anomaly_data else pd.DataFrame()
         anomalies_serialized = self._serialize_df(anomalies_df)
+        print('got anomaly data...')
+
         try:
             # Define agent - use the endpoint string, LiteLLM will handle it with env vars
             llama_agent = Agent(
@@ -81,26 +82,21 @@ class ExplainerAgent:
                 goal="Give a concise, mechanistic explanation of why given conditions and issues might arise in a fed-batch CHO culture.",
                 backstory="You are a bioprocess expert. Analyze the following CHO cellbioreactor conditions and provide possible explanations. Categorize the primary root causes of any anomalies or deviations from the expected ideal conditions.",
                 llm=self.endpoint,
-                verbose=False # Optional: helps with debugging
-            )
+                verbose=False)
+            print('created agent...')
 
             task = Task(
                 agent=llama_agent,
                 description="Bioreactor Troubleshooting. Analyze the serialized telemetry data from a pharmaceutical bioreactor run. Provide a concise, mechanistic explanation of the run data, any concerning metrics, and your assessment of the cause for any anomalies.\nTelemetry: {telemetry}\nAnomalies: {anomalies}",
-                expected_output="A 3-4 sentence assessment of the bioreactor telemetry data and statistically detected anomalies, including root cause analysis. Specifically recommend actions and a high level categorization of the root cause."
-            )
-            task = Task(
-                agent=llama_agent,
-                description="Bioreactor Troubleshooting. Analyze the serialized telemetry data from a pharmaceutical bioreactor run. Provide a concise, mechanistic explanation of the run data, any concerning metrics, and your assessment of the cause for any anomalies.\nTelemetry: {telemetry}\nAnomalies: {anomalies}",
-                expected_output="A 3-4 sentence assessment of the bioreactor telemetry data and statistically detected anomalies, including root cause analysis. Specifically recommend actions and a high level categorization of the root cause."
-            )
+                expected_output="A 3-4 sentence assessment of the bioreactor telemetry data and statistically detected anomalies, including root cause analysis. Specifically recommend actions and a high level categorization of the root cause.")
+            print('created task...')    
 
             crew = Crew(agents=[llama_agent],tasks=[task],verbose=False)
+            print('starting up crew...')
             # Pass data as inputs to the crew
             result = crew.kickoff(inputs={
                 "telemetry": telemetry_serialized,
-                "anomalies": anomalies_serialized
-            })
+                "anomalies": anomalies_serialized})
             print(result)
             return result
         except Exception as e:
