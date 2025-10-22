@@ -97,9 +97,13 @@ class ExplainerAgent:
 
         crew = Crew(agents=[llama_agent],tasks=[task],verbose=False)
         # Pass data as inputs to the crew
-        result = crew.kickoff(inputs={
-            "telemetry": telemetry_serialized,
-            "anomalies": anomalies_serialized})
-        
-        print(result)
-        return result
+        try:
+            result = crew.kickoff(inputs={
+                "telemetry": telemetry_serialized,
+                "anomalies": anomalies_serialized
+            })
+            print(result)
+            return result
+        except Exception as e:
+            print("Error during crew.kickoff:", e)
+            raise
