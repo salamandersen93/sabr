@@ -90,13 +90,6 @@ class ExplainerAgent:
                 description="Bioreactor Troubleshooting. Analyze the serialized telemetry data from a pharmaceutical bioreactor run. Provide a concise, mechanistic explanation of the run data, any concerning metrics, and your assessment of the cause for any anomalies.\nTelemetry: {telemetry}\nAnomalies: {anomalies}",
                 expected_output="A 3-4 sentence assessment of the bioreactor telemetry data and statistically detected anomalies, including root cause analysis. Specifically recommend actions and a high level categorization of the root cause.")
             print('created task...')    
-            # TEST
-            print('TESTING...')
-            headers = {"Authorization": f"Bearer {PAT}"}
-            url = f"{DATABRICKS_HOST}/api/2.0/serving-endpoints/{self.endpoint}"
-            response = requests.get(url, headers=headers)
-            print(response.json())
-
             crew = Crew(agents=[llama_agent],tasks=[task],verbose=False)
             print('starting up crew...')
             # Pass data as inputs to the crew
@@ -107,4 +100,4 @@ class ExplainerAgent:
             return result
         except Exception as e:
             print("Error during crew.kickoff:", e)
-            raise
+            return "Proceeding without LLM summary."
