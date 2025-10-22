@@ -90,6 +90,16 @@ class ExplainerAgent:
                 description="Bioreactor Troubleshooting. Analyze the serialized telemetry data from a pharmaceutical bioreactor run. Provide a concise, mechanistic explanation of the run data, any concerning metrics, and your assessment of the cause for any anomalies.\nTelemetry: {telemetry}\nAnomalies: {anomalies}",
                 expected_output="A 3-4 sentence assessment of the bioreactor telemetry data and statistically detected anomalies, including root cause analysis. Specifically recommend actions and a high level categorization of the root cause.")
             print('created task...')    
+            # TEST
+            print('TESTING...')
+            client = mlflow.deployments.get_deploy_client("databricks")
+            response = client.predict(
+                endpoint="databricks/databricks-meta-llama-3-3-70b-instruct",
+                inputs={
+                    "messages": [{"role": "user", "content": "Hello"}],
+                    "temperature": 0.1,
+                    "max_tokens": 32})
+            print(response)
 
             crew = Crew(agents=[llama_agent],tasks=[task],verbose=False)
             print('starting up crew...')
