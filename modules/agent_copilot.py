@@ -92,14 +92,10 @@ class ExplainerAgent:
             print('created task...')    
             # TEST
             print('TESTING...')
-            client = mlflow.deployments.get_deploy_client("databricks")
-            response = client.predict(
-                endpoint="databricks/databricks-meta-llama-3-3-70b-instruct",
-                inputs={
-                    "messages": [{"role": "user", "content": "Hello"}],
-                    "temperature": 0.1,
-                    "max_tokens": 32})
-            print(response)
+            headers = {"Authorization": f"Bearer {PAT}"}
+            url = f"{DATABRICKS_HOST}/api/2.0/serving-endpoints/{self.endpoint}"
+            response = requests.get(url, headers=headers)
+            print(response.json())
 
             crew = Crew(agents=[llama_agent],tasks=[task],verbose=False)
             print('starting up crew...')
